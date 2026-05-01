@@ -24,6 +24,10 @@ bundle/
 # Logs
 *.log
 
+# Build artifacts (uploaded to GitHub Releases)
+artifacts/
+*.zip
+
 # IDE
 .idea/
 .vscode/
