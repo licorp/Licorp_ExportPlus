@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RevitVersion>2020</RevitVersion>
+    <AssemblyName>LicorpExportPlus</AssemblyName>
+    <RootNamespace>LicorpExportPlus</RootNamespace>
+    <Configurations>Debug;Release</Configurations>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>..\..\bin\R2020\$(Configuration)\</OutputPath>
+    <DefineConstants>$(DefineConstants);REVIT2020</DefineConstants>
+  </PropertyGroup>
+
+  <!-- Shared Project Import -->
+  <Import Project="..\LicorpExportPlus.Shared\LicorpExportPlus.Shared.projitems" Label="Shared" />
+
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+  </ItemGroup>
+
+  <!-- Nice3point: Revit API + Toolkit + Extensions -->
+  <ItemGroup>
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="$(RevitVersion).*" />
+    <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="$(RevitVersion).*" />
+    <PackageReference Include="Nice3point.Revit.Api.AdWindows" Version="$(RevitVersion).*" />
+    <PackageReference Include="Nice3point.Revit.Toolkit" Version="$(RevitVersion).*" />
+    <PackageReference Include="Nice3point.Revit.Extensions" Version="$(RevitVersion).*" />
+    <PackageReference Include="Nice3point.Revit.Build.Tasks" Version="3.*" PrivateAssets="All" />
+  </ItemGroup>
+
+  <!-- ricaun: Revit UI, Tasks, StatusBar, DI -->
+  <ItemGroup>
+    <PackageReference Include="ricaun.Revit.UI" Version="*" />
+    <PackageReference Include="ricaun.Revit.UI.Tasks" Version="*" />
+    <PackageReference Include="ricaun.Revit.UI.StatusBar" Version="*" />
+    <PackageReference Include="ricaun.Revit.DI" Version="*" />
+    <PackageReference Include="ricaun.DI" Version="*" />
+  </ItemGroup>
+
+  <!-- MVVM + WPF Libraries -->
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.*" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.*" />
+    <PackageReference Include="WPF-UI" Version="4.*" />
+  </ItemGroup>
+
+  <!-- Excel + Data + Logging -->
+  <ItemGroup>
+    <PackageReference Include="EPPlus" Version="6.*" />
+    <PackageReference Include="ClosedXML" Version="0.105.*" />
+    <PackageReference Include="ExcelDataReader" Version="3.*" />
+    <PackageReference Include="ExcelDataReader.DataSet" Version="3.*" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.*" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.*" />
+    <PackageReference Include="Serilog" Version="3.*" />
+    <PackageReference Include="Serilog.Sinks.File" Version="5.*" />
+  </ItemGroup>
+</Project>

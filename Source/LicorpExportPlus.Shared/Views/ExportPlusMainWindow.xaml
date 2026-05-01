@@ -1,0 +1,2426 @@
+<Window x:Class="LicorpExportPlus.Views.ExportPlusMainWindow"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:local="clr-namespace:LicorpExportPlus"
+ xmlns:utils="clr-namespace:LicorpExportPlus.Utils"
+ xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        Title="Export +" 
+        Height="750" Width="1200"
+        MinHeight="600" MinWidth="800"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="True"
+        Topmost="False"
+        WindowState="Normal"
+        ResizeMode="CanResize"
+        DataContext="{Binding RelativeSource={RelativeSource Self}}">
+
+    <Window.Resources>
+        <!-- Converters -->
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+
+        <!-- Drop Shadow Effect for Popups -->
+        <DropShadowEffect x:Key="DropShadowEffect" 
+                          Color="Black" 
+                          Direction="270" 
+                          ShadowDepth="2" 
+                          BlurRadius="8" 
+                          Opacity="0.3"/>
+
+        <!-- Professional Button Styles -->
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#2196F3"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#2196F3"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#1976D2"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#1565C0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#666"/>
+            <Setter Property="BorderBrush" Value="#E1E1E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#F5F5F5"/>
+                                <Setter Property="BorderBrush" Value="#CCCCCC"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#EEEEEE"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- DataGrid Styles -->
+        <Style x:Key="HeaderlessDataGrid" TargetType="DataGrid">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E1E1E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#F0F0F0"/>
+            <Setter Property="RowHeight" Value="35"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="SelectionMode" Value="Extended"/>
+            <Setter Property="AlternatingRowBackground" Value="#FAFAFA"/>
+        </Style>
+
+        <Style x:Key="CustomHeaderTextBlock" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#333"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="10,8"/>
+        </Style>
+
+        <!-- Custom File Name Column Header Style (darker background) -->
+        <Style x:Key="CustomFileNameHeaderStyle" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#E8E8E8"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        </Style>
+
+        <!-- ComboBox Style with Centered Text -->
+        <Style TargetType="ComboBox">
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="8,0"/>
+        </Style>
+
+        <!-- ComboBoxItem Style with Centered Text -->
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="8,6"/>
+        </Style>
+
+        <!-- TextBox Style with Centered Text -->
+        <Style TargetType="TextBox">
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="8,0"/>
+        </Style>
+
+        <!-- CheckBox Style with Centered Text -->
+        <Style TargetType="CheckBox">
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="4,0,0,0"/>
+        </Style>
+
+        <!-- RadioButton Style with Centered Text -->
+        <Style TargetType="RadioButton">
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="4,0,0,0"/>
+        </Style>
+
+        <!-- Button Style with Centered Text -->
+        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="12,6"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Background="#FAFAFA">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Main Content -->
+        <TabControl x:Name="MainTabControl" Grid.Row="0" Background="White" BorderThickness="0"
+                    SelectedIndex="0"
+                    SelectionChanged="MainTabControl_SelectionChanged">
+            <!-- Sheets Tab -->
+            <TabItem x:Name="SheetsTab">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Fill="#4CAF50" Width="8" Height="8" Margin="0,0,5,0"/>
+                        <TextBlock Text="Sheets"/>
+                    </StackPanel>
+                </TabItem.Header>
+
+                <Grid Margin="20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="0*"/>
+                        <RowDefinition Height="0*"/>
+                        <RowDefinition Height="0*"/>
+                        <RowDefinition Height="0*"/>
+                        <RowDefinition/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Profile Manager Bar -->
+                    <Border Grid.Row="0" Background="#F8F8F8" BorderBrush="#E1E1E1" BorderThickness="1" 
+                            CornerRadius="3" Padding="15" Margin="0,0,0,15">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Profile Label -->
+                            <TextBlock Grid.Column="0" Text="Profile:" VerticalAlignment="Center" 
+                                       Margin="0,0,10,0" FontWeight="SemiBold" FontSize="14"
+                                       Foreground="#333333"/>
+
+                            <!-- Profile ComboBox -->
+                            <ComboBox Grid.Column="1" x:Name="ProfileComboBox" Height="32" 
+                                      MinWidth="200" MaxWidth="400" HorizontalAlignment="Stretch"
+                                      Margin="0,0,10,0"
+                                      FontSize="13"
+                                      SelectionChanged="ProfileComboBox_SelectionChanged">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="0,0,10,0"/>
+                                            <TextBlock Text="{Binding Description}" Foreground="#999999" FontSize="11"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+
+                            <!-- Profile Action Buttons -->
+                            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                <Button x:Name="ApplyProfileButton" Width="70" Height="32" Margin="0,0,10,0"
+                                        Style="{StaticResource PrimaryButtonStyle}"
+                                        ToolTip="Apply selected profile settings"
+                                        Click="ApplyProfile_Click"
+                                        IsEnabled="False">
+                                    <TextBlock Text="Apply" FontSize="13" FontWeight="SemiBold"
+                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                </Button>
+                                <Button x:Name="AddProfileButton" Width="32" Height="32" Margin="0,0,5,0" 
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        ToolTip="Create new profile from current settings"
+                                        Click="AddProfile_Click"
+                                        Padding="0">
+                                    <TextBlock Text="+" FontSize="20" FontWeight="Bold" 
+                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                </Button>
+                                <Button x:Name="SaveProfileButton" Width="32" Height="32" Margin="0,0,5,0"
+                                        Style="{StaticResource SecondaryButtonStyle}" 
+                                        ToolTip="Save current settings to selected profile"
+                                        Click="SaveProfile_Click"
+                                        Padding="0">
+                                    <TextBlock Text="💾" FontSize="16" 
+                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                </Button>
+                                <Button x:Name="DeleteProfileButton" Width="32" Height="32"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        ToolTip="Delete selected profile"
+                                        Click="DeleteProfile_Click"
+                                        Padding="0">
+                                    <TextBlock Text="🗑" FontSize="16" 
+                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Top Control Bar - Ribbon -->
+                    <Border Grid.Row="1" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" 
+                            Padding="10,8" Margin="0,0,0,15">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Radio Buttons for Sheets/Views -->
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,15,0">
+                                <RadioButton x:Name="SheetsRadio" Content="Sheets" IsChecked="True" GroupName="ViewType" 
+                                             VerticalAlignment="Center" Margin="0,0,10,0" FontSize="12"
+                                             Checked="SheetsRadio_Checked"/>
+                                <RadioButton x:Name="ViewsRadio" Content="Views" GroupName="ViewType" 
+                                             VerticalAlignment="Center" FontSize="12"
+                                             Checked="ViewsRadio_Checked"/>
+                            </StackPanel>
+
+                            <!-- View/Sheet Set Label -->
+                            <TextBlock Grid.Column="1" Text="View/Sheet Set" VerticalAlignment="Center" 
+                                       Margin="0,0,8,0" FontSize="12"/>
+
+                            <!-- Filter Checkbox + Multi-Select Dropdown -->
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0">
+                                <CheckBox x:Name="FilterByVSCheckBox" 
+                                         VerticalAlignment="Center"
+                                         Margin="0,0,6,0"
+                                         Checked="FilterByVSCheckBox_Checked"
+                                         Unchecked="FilterByVSCheckBox_Unchecked"
+                                         ToolTip="Enable filtering by View/Sheet Set"/>
+
+                                <!-- Multi-Select ToggleButton with Popup -->
+                                <ToggleButton x:Name="ViewSheetSetToggle" 
+                                             Width="180" Height="24"
+                                             BorderBrush="#CCCCCC" BorderThickness="1" 
+                                             Background="White"
+                                             HorizontalContentAlignment="Left"
+                                             Padding="6,2">
+                                    <ToggleButton.Content>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" 
+                                                      Text="{Binding SelectedSetsDisplay, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      TextTrimming="CharacterEllipsis"
+                                                      VerticalAlignment="Center"
+                                                      FontSize="12"/>
+                                            <TextBlock Grid.Column="1" Text="▼" 
+                                                      VerticalAlignment="Center" 
+                                                      Margin="4,0,0,0"
+                                                      FontSize="10"/>
+                                        </Grid>
+                                    </ToggleButton.Content>
+                                </ToggleButton>
+
+                                <!-- Popup with CheckBoxes -->
+                                <Popup x:Name="ViewSheetSetPopup"
+                                       PlacementTarget="{Binding ElementName=ViewSheetSetToggle}"
+                                       Placement="Bottom"
+                                       StaysOpen="False"
+                                       IsOpen="{Binding ElementName=ViewSheetSetToggle, Path=IsChecked}"
+                                       Width="{Binding ElementName=ViewSheetSetToggle, Path=ActualWidth}">
+                                    <Border Background="White" 
+                                            BorderBrush="#CCCCCC" 
+                                            BorderThickness="1"
+                                            Padding="5"
+                                            Effect="{StaticResource DropShadowEffect}">
+                                        <ScrollViewer MaxHeight="200" 
+                                                     VerticalScrollBarVisibility="Auto"
+                                                     HorizontalScrollBarVisibility="Disabled">
+                                            <ItemsControl x:Name="ViewSheetSetItems"
+                                                         ItemsSource="{Binding ViewSheetSets, RelativeSource={RelativeSource AncestorType=Window}}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <CheckBox Content="{Binding DisplayName}"
+                                                                 IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                                 Margin="0,2"
+                                                                 FontSize="12"
+                                                                 Checked="ViewSheetSetCheckBox_Changed"
+                                                                 Unchecked="ViewSheetSetCheckBox_Changed"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Popup>
+                            </StackPanel>
+
+                            <!-- Save V/S Set Button -->
+                            <!-- Save V/S Set Button with Dropdown Menu -->
+                            <Button Grid.Column="3" x:Name="SaveVSSetButton" Width="110" Height="24" 
+                                    Margin="0,0,10,0" FontSize="12"
+                                    Background="White" BorderBrush="#CCCCCC" BorderThickness="1"
+                                    Click="SaveVSSetButton_Click"
+                                    ToolTip="Save current selection as View/Sheet Set">
+                                <Button.Content>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Save V/S Set" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                        <TextBlock Grid.Column="1" Text="▼" VerticalAlignment="Center" FontSize="10"/>
+                                    </Grid>
+                                </Button.Content>
+                                <Button.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="New Set" Click="NewVSSet_Click">
+                                            <MenuItem.Icon>
+                                                <TextBlock Text="+" FontWeight="Bold" FontSize="14"/>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Add to Existing" Click="AddToExistingVSSet_Click">
+                                            <MenuItem.Icon>
+                                                <TextBlock Text="📁" FontSize="12"/>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <Separator/>
+                                        <MenuItem Header="Delete Set" Click="DeleteVSSet_Click" x:Name="DeleteSetMenuItem">
+                                            <MenuItem.Icon>
+                                                <TextBlock Text="🗑" FontSize="12"/>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="2" Padding="8,2">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#F0F0F0"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+
+                            <!-- Search TextBox -->
+                            <TextBox Grid.Column="4" x:Name="SearchTextBox" Width="200" Height="32" 
+                                     VerticalContentAlignment="Center" FontSize="13"
+                                     BorderBrush="#CCCCCC" BorderThickness="1"
+                                     Padding="28,4,8,4"
+                                     TextChanged="SearchTextBox_TextChanged">
+                                <TextBox.Template>
+                                    <ControlTemplate TargetType="TextBox">
+                                        <Border Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="2">
+                                            <Grid>
+                                                <ScrollViewer x:Name="PART_ContentHost" 
+                                                             Margin="{TemplateBinding Padding}"
+                                                             VerticalAlignment="Center"/>
+                                                <TextBlock Text="🔍" 
+                                                          HorizontalAlignment="Left" 
+                                                          VerticalAlignment="Center"
+                                                          Margin="6,0,0,0"
+                                                          Foreground="#999999"
+                                                          IsHitTestVisible="False"
+                                                          FontSize="12"/>
+                                            </Grid>
+                                        </Border>
+                                    </ControlTemplate>
+                                </TextBox.Template>
+                            </TextBox>
+                        </Grid>
+                    </Border>
+
+                    <!-- DataGrid with ADVANCED VIRTUALIZATION -->
+                    <!-- ZIndex=1 để nằm dưới FastGrid -->
+                    <DataGrid Grid.Row="2" x:Name="SheetsDataGrid" 
+                              Panel.ZIndex="1" 
+                              Style="{StaticResource HeaderlessDataGrid}"
+                              ItemsSource="{Binding Sheets}"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              CanUserResizeRows="False"
+                              CanUserResizeColumns="True"
+                              SelectionMode="Extended"
+                              SelectionChanged="SheetsDataGrid_SelectionChanged"
+                              ScrollViewer.ScrollChanged="SheetsDataGrid_ScrollChanged"
+                              VirtualizingPanel.IsVirtualizing="True"
+                              VirtualizingPanel.VirtualizationMode="Recycling"
+                              VirtualizingPanel.ScrollUnit="Pixel"
+                              VirtualizingPanel.CacheLength="20,20"
+                              VirtualizingPanel.CacheLengthUnit="Item"
+                              EnableRowVirtualization="True"
+                              EnableColumnVirtualization="True" 
+                              Grid.RowSpan="5">
+                        <!-- Row Style for highlighting sheets with no view -->
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasNoView}" Value="True">
+                                        <Setter Property="Background" Value="#FFFFF4E0"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Width="50" CanUserResize="False">
+                                <DataGridTemplateColumn.Header>
+                                    <CheckBox x:Name="SelectAllSheetsCheckBox" Content="All"
+                                            FontSize="11" FontWeight="SemiBold"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Checked="SelectAllCheckBox_Checked"
+                                            Unchecked="SelectAllCheckBox_Unchecked"/>
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" 
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Click="SheetCheckBox_Click"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Width="120" Binding="{Binding SheetNumber}" Header="Sheet Number" CanUserResize="True">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Margin" Value="10,8"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Width="*" Binding="{Binding SheetName}" Header="Sheet Name" CanUserResize="True">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Margin" Value="10,8"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- Warning Column for sheets with no view -->
+                            <DataGridTemplateColumn Width="40" CanUserResize="False" Header="">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="⚠️" 
+                                                   FontSize="16"
+                                                   Foreground="#FFA500"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   ToolTip="{Binding WarningMessage}"
+                                                   Visibility="{Binding HasNoView, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Width="100" Binding="{Binding Revision}" Header="Revision" CanUserResize="True">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Margin" Value="10,8"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Width="120" Binding="{Binding PaperSize}" Header="Size" CanUserResize="True">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Margin" Value="10,8"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTemplateColumn Width="*" CanUserResize="True">
+                                <DataGridTemplateColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                        <Setter Property="Padding" Value="0"/>
+                                        <Setter Property="Background" Value="#E8E8E8"/>
+                                    </Style>
+                                </DataGridTemplateColumn.HeaderStyle>
+                                <DataGridTemplateColumn.Header>
+                                    <Button Content="Custom File Name"
+                                           HorizontalAlignment="Stretch"
+                                           HorizontalContentAlignment="Left"
+                                           Background="Transparent"
+                                           BorderThickness="0"
+                                           Padding="8,8"
+                                           Cursor="Hand"
+                                           FontWeight="SemiBold"
+                                           Click="EditSelectedFilenames_Click"
+                                           ToolTip="Click to edit filename for selected sheets">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border Background="{TemplateBinding Background}"
+                                                                    BorderThickness="0"
+                                                                    Padding="{TemplateBinding Padding}">
+                                                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                                                                VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#D0D0D0"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsPressed" Value="True">
+                                                                    <Setter Property="Background" Value="#C0C0C0"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding CustomFileName, UpdateSourceTrigger=PropertyChanged}" 
+                                                Margin="8,5" 
+                                                Background="Transparent" 
+                                                BorderThickness="0"
+                                                IsReadOnly="True"
+                                                VerticalContentAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Views DataGrid -->
+                    <DataGrid Grid.Row="3" x:Name="ViewsDataGrid" 
+                              Style="{StaticResource HeaderlessDataGrid}"
+                              ItemsSource="{Binding Views}"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              CanUserResizeRows="False"
+                              CanUserResizeColumns="True"
+                              SelectionMode="Extended"
+                              Visibility="Collapsed"
+                              SelectionChanged="ViewsDataGrid_SelectionChanged"
+                              ScrollViewer.ScrollChanged="ViewsDataGrid_ScrollChanged"
+                              VirtualizingPanel.IsVirtualizing="True"
+                              VirtualizingPanel.VirtualizationMode="Recycling"
+                              VirtualizingPanel.ScrollUnit="Pixel"
+                              EnableRowVirtualization="True" 
+                              Grid.RowSpan="5">
+                        <DataGrid.Columns>
+                            <!-- Checkbox Column -->
+                            <DataGridTemplateColumn Width="50" CanUserResize="False">
+                                <DataGridTemplateColumn.Header>
+                                    <CheckBox x:Name="SelectAllViewsCheckBox" Content="All" 
+                                              FontSize="11" FontWeight="SemiBold"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Checked="SelectAllCheckBox_Checked"
+                                              Unchecked="SelectAllCheckBox_Unchecked"/>
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" 
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Click="ViewCheckBox_Click"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <!-- View Number -->
+                            <DataGridTextColumn Width="90" Binding="{Binding ViewNumber}" Header="View Number" CanUserResize="True">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Margin" Value="10,8"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- View Name -->
+                            <DataGridTextColumn Width="200" Binding="{Binding ViewName}" Header="View Name" CanUserResize="True">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Margin" Value="10,8"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- View Type (Sortable) -->
+                            <DataGridTextColumn Width="120" Binding="{Binding ViewType}" Header="All View" CanUserResize="True" CanUserSort="True">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Margin" Value="10,8"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- View Scale -->
+                            <DataGridTextColumn Width="80" Binding="{Binding Scale}" Header="View Scale" CanUserResize="True">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Margin" Value="10,8"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- Detail Level -->
+                            <DataGridTextColumn Width="80" Binding="{Binding DetailLevel}" Header="Detail Level" CanUserResize="True">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Margin" Value="10,8"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- Discipline -->
+                            <DataGridTextColumn Width="100" Binding="{Binding Discipline}" Header="Discipline" CanUserResize="True">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Margin" Value="10,8"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <!-- Custom File Name (Editable) -->
+                            <DataGridTemplateColumn Width="*" CanUserResize="True">
+                                <DataGridTemplateColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                        <Setter Property="Padding" Value="0"/>
+                                        <Setter Property="Background" Value="#E8E8E8"/>
+                                    </Style>
+                                </DataGridTemplateColumn.HeaderStyle>
+                                <DataGridTemplateColumn.Header>
+                                    <Button Content="Custom File Name"
+                                           HorizontalAlignment="Stretch"
+                                           HorizontalContentAlignment="Left"
+                                           Background="Transparent"
+                                           BorderThickness="0"
+                                           Padding="8,8"
+                                           Cursor="Hand"
+                                           FontWeight="SemiBold"
+                                           Click="EditSelectedFilenames_Click"
+                                           ToolTip="Click to edit filename for selected views">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border Background="{TemplateBinding Background}"
+                                                                    BorderThickness="0"
+                                                                    Padding="{TemplateBinding Padding}">
+                                                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                                                                VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#D0D0D0"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsPressed" Value="True">
+                                                                    <Setter Property="Background" Value="#C0C0C0"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding CustomFileName, UpdateSourceTrigger=PropertyChanged}" 
+                                                 Margin="8,5" Background="Transparent" BorderThickness="0"
+                                                 IsReadOnly="True"
+                                                 VerticalContentAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Bottom Status -->
+                    <Grid Grid.Row="7" Margin="0,15,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Empty - Statistics moved to bottom -->
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- Format Settings Tab -->
+            <TabItem x:Name="FormatsTab">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Fill="#FF9800" Width="8" Height="8" Margin="0,0,5,0"/>
+                        <TextBlock Text="Formats"/>
+                    </StackPanel>
+                </TabItem.Header>
+
+                <Grid Margin="20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Format Settings Details -->
+                    <TabControl Grid.Row="0" Background="White" BorderThickness="1" BorderBrush="#E1E1E1">
+                        <TabItem Header="PDF Settings" IsEnabled="{Binding ExportSettings.IsPdfSelected}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Format Icons Row -->
+                                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,15">
+                                        <!-- PDF -->
+                                        <Border Background="#FFF3E0" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="PDFCheck" IsChecked="{Binding ExportSettings.IsPdfSelected}" 
+                                                          Checked="FormatCheckBox_Changed" Unchecked="FormatCheckBox_Changed"
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="📄" FontSize="20" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="PDF" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#FF6D00"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- DWG -->
+                                        <Border Background="#E3F2FD" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="DWGCheck" IsChecked="{Binding ExportSettings.IsDwgSelected}" 
+                                                          Checked="FormatCheckBox_Changed" Unchecked="FormatCheckBox_Changed"
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="📐" FontSize="20" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="DWG" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#1976D2"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- DGN -->
+
+                                        <!-- DWF -->
+
+                                        <!-- NWC -->
+                                        <Border Background="#FFF9C4" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="NWCCheck" IsChecked="{Binding ExportSettings.IsNwcSelected}" 
+                                                          Checked="FormatCheckBox_Changed" Unchecked="FormatCheckBox_Changed"
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="🔧" FontSize="20" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="NWC" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#F57F17"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- IFC -->
+                                        <Border Background="#E0F2F1" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="IFCCheck" IsChecked="{Binding ExportSettings.IsIfcSelected}" 
+                                                          Checked="FormatCheckBox_Changed" Unchecked="FormatCheckBox_Changed"
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="🏗️" FontSize="20" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="IFC" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#00796B"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- DXF -->
+                                        <Border Background="#F3E5F5" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="DXFCheck" IsChecked="{Binding ExportSettings.IsDxfSelected}" 
+                                                          Checked="FormatCheckBox_Changed" Unchecked="FormatCheckBox_Changed"
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="📊" FontSize="20" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="DXF" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#7B1FA2"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- IMG -->
+                                    </StackPanel>
+
+                                    <!-- PDF Options Panel -->
+                                    <Grid Grid.Row="1" Margin="0,0,0,15">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Paper Placement -->
+                                        <GroupBox Header="Paper Placement" Grid.Column="0" Margin="0,0,5,0" 
+                                                  BorderBrush="#E1E1E1" BorderThickness="1">
+                                            <StackPanel Margin="10">
+                                                <RadioButton x:Name="CenterRadio" Content="Center" IsChecked="True" Margin="0,0,0,8" FontSize="13"
+                                                             Checked="PdfSettings_Changed"/>
+                                                <RadioButton x:Name="OffsetRadio" Content="Offset from corner" Margin="0,0,0,8" FontSize="13"
+                                                             Checked="PdfSettings_Changed"/>
+                                                <ComboBox x:Name="MarginCombo" Margin="20,0,0,10" FontSize="13"
+                                                          SelectionChanged="PdfCombo_SelectionChanged">
+                                                    <ComboBoxItem Content="No Margin" IsSelected="True"/>
+                                                    <ComboBoxItem Content="Printer Limit"/>
+                                                    <ComboBoxItem Content="User Defined"/>
+                                                </ComboBox>
+                                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                    <TextBlock Text="X -" VerticalAlignment="Center" Width="25" FontSize="13"/>
+                                                <TextBox x:Name="OffsetXTextBox" Width="50" Height="25" Margin="2,0,10,0" 
+                                                         VerticalContentAlignment="Center" Text="0"
+                                                         TextChanged="PdfSettingsTextBox_TextChanged"/>
+                                                    <TextBlock Text="Y -" VerticalAlignment="Center" Width="25" FontSize="13"/>
+                                                <TextBox x:Name="OffsetYTextBox" Width="50" Height="25" Margin="2,0,0,0" 
+                                                         VerticalContentAlignment="Center" Text="0"
+                                                         TextChanged="PdfSettingsTextBox_TextChanged"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </GroupBox>
+
+                                        <!-- Hidden Line Views -->
+                                        <GroupBox Header="Hidden Line Views" Grid.Column="1" Margin="5,0,5,0" 
+                                                  BorderBrush="#E1E1E1" BorderThickness="1">
+                                            <StackPanel Margin="10">
+                                                <TextBlock Text="Remove Lines Using" Margin="0,0,0,8" FontWeight="SemiBold" FontSize="13"/>
+                                                <RadioButton x:Name="VectorProcessingRadio" Content="Vector Processing" IsChecked="True" Margin="0,0,0,5" FontSize="13"
+                                                             Checked="PdfSettings_Changed"/>
+                                                <RadioButton x:Name="RasterProcessingRadio" Content="Raster Processing" FontSize="13"
+                                                             Checked="PdfSettings_Changed"/>
+
+                                                <TextBlock Text="Appearance" Margin="0,15,0,8" FontWeight="SemiBold" FontSize="13"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <TextBlock Text="Raster Quality" VerticalAlignment="Center" Width="95" FontSize="13"/>
+                                                    <ComboBox x:Name="RasterQualityCombo" Width="120" FontSize="13"
+                                                              SelectionChanged="PdfCombo_SelectionChanged">
+                                                        <ComboBoxItem Content="Low"/>
+                                                        <ComboBoxItem Content="Medium"/>
+                                                        <ComboBoxItem Content="High" IsSelected="True"/>
+                                                        <ComboBoxItem Content="Presentation"/>
+                                                    </ComboBox>
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="Colors" VerticalAlignment="Center" Width="95" FontSize="13"/>
+                                                    <ComboBox x:Name="ColorsCombo" Width="120" FontSize="13"
+                                                              SelectionChanged="PdfCombo_SelectionChanged">
+                                                        <ComboBoxItem Content="Color" IsSelected="True"/>
+                                                        <ComboBoxItem Content="Black and White"/>
+                                                        <ComboBoxItem Content="Grayscale"/>
+                                                    </ComboBox>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </GroupBox>
+
+                                        <!-- Options Panel -->
+                                        <GroupBox Header="Options" Grid.Column="2" Margin="5,0,0,0" 
+                                                  BorderBrush="#E1E1E1" BorderThickness="1">
+                                            <StackPanel Margin="10">
+                                                <CheckBox Content="View links in blue (Color prints only)" 
+                                                          IsChecked="{Binding ExportSettings.ViewLinksInBlue}" 
+                                                          Checked="OptionCheckBox_Changed" Unchecked="OptionCheckBox_Changed"
+                                                          Margin="0,0,0,5" FontSize="13"/>
+                                                <CheckBox Content="Hide ref/work planes" 
+                                                          IsChecked="{Binding ExportSettings.HideRefWorkPlanes}" 
+                                                          Checked="OptionCheckBox_Changed" Unchecked="OptionCheckBox_Changed"
+                                                          Margin="0,0,0,5" FontSize="13"/>
+                                                <CheckBox Content="Hide unreferenced view tags" 
+                                                          IsChecked="{Binding ExportSettings.HideUnreferencedViewTags}" 
+                                                          Checked="OptionCheckBox_Changed" Unchecked="OptionCheckBox_Changed"
+                                                          Margin="0,0,0,5" FontSize="13"/>
+                                                <CheckBox Content="Hide scope boxes" 
+                                                          IsChecked="{Binding ExportSettings.HideScopeBoxes}" 
+                                                          Checked="OptionCheckBox_Changed" Unchecked="OptionCheckBox_Changed"
+                                                          Margin="0,0,0,5" FontSize="13"/>
+                                                <CheckBox Content="Hide crop boundaries" 
+                                                          IsChecked="{Binding ExportSettings.HideCropBoundaries}" 
+                                                          Checked="OptionCheckBox_Changed" Unchecked="OptionCheckBox_Changed"
+                                                          Margin="0,0,0,5" FontSize="13"/>
+                                                <CheckBox Content="Replace halftone with thin lines" 
+                                                          IsChecked="{Binding ExportSettings.ReplaceHalftone}" 
+                                                          Checked="OptionCheckBox_Changed" Unchecked="OptionCheckBox_Changed"
+                                                          Margin="0,0,0,5" FontSize="13"/>
+                                                <CheckBox Content="Region edges mask coincident lines" 
+                                                          IsChecked="{Binding ExportSettings.RegionEdgesMask}" 
+                                                          Checked="OptionCheckBox_Changed" Unchecked="OptionCheckBox_Changed"
+                                                          FontSize="13"/>
+                                            </StackPanel>
+                                        </GroupBox>
+                                    </Grid>
+
+                                    <!-- Zoom, Printer & File Options -->
+                                    <Grid Grid.Row="2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Zoom Section -->
+                                        <GroupBox Header="Zoom" Grid.Column="0" Margin="0,0,5,0" 
+                                                  BorderBrush="#E1E1E1" BorderThickness="1">
+                                            <StackPanel Margin="10">
+                                                <RadioButton x:Name="FitToPageRadio" Content="Fit to Page" Margin="0,0,0,8" FontSize="13"
+                                                             Checked="PdfSettings_Changed"/>
+                                                <RadioButton x:Name="ZoomRadio" Content="Zoom" IsChecked="True" Margin="0,0,0,8" FontSize="13"
+                                                             Checked="PdfSettings_Changed"/>
+                                                <StackPanel Orientation="Horizontal" Margin="20,0,0,0">
+                                                    <TextBox x:Name="ZoomPercentTextBox" Width="60" Text="100" Height="25" VerticalContentAlignment="Center" 
+                                                             HorizontalContentAlignment="Right" FontSize="13"
+                                                             TextChanged="PdfSettingsTextBox_TextChanged"/>
+                                                    <TextBlock Text="% Size" VerticalAlignment="Center" Margin="5,0,0,0" FontSize="13"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </GroupBox>
+
+                                        <!-- Printer Section -->
+                                        <GroupBox Header="Printer" Grid.Column="1" Margin="5,0,5,0" 
+                                                  BorderBrush="#E1E1E1" BorderThickness="1">
+                                            <StackPanel Margin="10">
+                                                <TextBlock Text="Printer" Margin="0,0,0,8" FontWeight="SemiBold" FontSize="13"/>
+                                                <ComboBox x:Name="PrinterCombo" FontSize="13"
+                                                          SelectionChanged="PdfCombo_SelectionChanged">
+                                                    <ComboBoxItem Content="PDF24" IsSelected="True"/>
+                                                    <ComboBoxItem Content="Adobe PDF"/>
+                                                    <ComboBoxItem Content="Bluebeam PDF"/>
+                                                    <ComboBoxItem Content="Microsoft Print to PDF"/>
+                                                </ComboBox>
+                                            </StackPanel>
+                                        </GroupBox>
+
+                                        <!-- File Options Section -->
+                                        <GroupBox Header="File" Grid.Column="2" Margin="5,0,0,0" 
+                                                  BorderBrush="#E1E1E1" BorderThickness="1">
+                                            <StackPanel Margin="10">
+                                                <RadioButton x:Name="SeparateFilesRadio" Content="Create separate files" IsChecked="True" Margin="0,0,0,5" FontSize="13"
+                                                             Checked="SeparateFilesRadio_Checked"/>
+                                                <RadioButton x:Name="CombineFilesRadio" Content="Combine multiple views/sheets into a single file" 
+                                                             Margin="0,0,0,10" FontSize="13" 
+                                                             Checked="CombineFilesRadio_Checked"/>
+
+                                                <CheckBox x:Name="KeepPaperSizeCheckBox" Content="Keep Paper Size &amp; Orientation" 
+                                                      IsChecked="{Binding ExportSettings.KeepPaperSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      Checked="OptionCheckBox_Changed" Unchecked="OptionCheckBox_Changed"
+                                                      Margin="0,0,0,15" FontSize="13"/>
+
+                                                <Button x:Name="CustomFileNameCombineButton" Content="Custom File Name" Height="30" Margin="0,0,0,5" 
+                                                        FontSize="13" Click="CustomFileNameCombine_Click"
+                                                        IsEnabled="{Binding ElementName=CombineFilesRadio, Path=IsChecked}"
+                                                        ToolTip="Set custom name for combined PDF file"/>
+                                                <Button x:Name="OrderSheetsViewsButton" Content="Order sheets and views" Height="30" 
+                                                        FontSize="13" Click="OrderSheetsViews_Click"
+                                                        IsEnabled="{Binding ElementName=CombineFilesRadio, Path=IsChecked}"
+                                                        ToolTip="Reorder sheets/views in combined PDF"/>
+                                            </StackPanel>
+                                        </GroupBox>
+                                    </Grid>
+                                </Grid>
+                            </ScrollViewer>
+                        </TabItem>
+
+                        <TabItem Header="DWG Settings" IsEnabled="{Binding ExportSettings.IsDwgSelected}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <Grid Margin="15">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Format Selection Row -->
+                                    <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,20">
+                                        <!-- PDF -->
+                                        <Border Background="#FFF3E0" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox IsChecked="{Binding ExportSettings.IsPdfSelected}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="📄 PDF" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#FF6D00"/>
+                                            </StackPanel>
+                                        </Border>
+                                        
+                                        <!-- DWG (Active) -->
+                                        <Border Background="#E3F2FD" CornerRadius="3" Padding="10,5" Margin="0,0,10,0" BorderBrush="#1976D2" BorderThickness="2">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox IsChecked="{Binding ExportSettings.IsDwgSelected}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="📐 DWG" FontWeight="Bold" VerticalAlignment="Center" Foreground="#1976D2"/>
+                                            </StackPanel>
+                                        </Border>
+                                        
+                                        <!-- NWC -->
+                                        <Border Background="#E8F5E9" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox IsChecked="{Binding ExportSettings.IsNwcSelected}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="🔧 NWC" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#388E3C"/>
+                                            </StackPanel>
+                                        </Border>
+                                        
+                                        <!-- IFC -->
+                                        <Border Background="#E0F2F1" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox IsChecked="{Binding ExportSettings.IsIfcSelected}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="🏗️ IFC" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#00796B"/>
+                                            </StackPanel>
+                                        </Border>
+                                        
+                                        <!-- DXF -->
+                                        <Border Background="#F3E5F5" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox IsChecked="{Binding ExportSettings.IsDxfSelected}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="📊 DXF" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#7B1FA2"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+
+                                    <!-- Export Setup Selection -->
+                                    <GroupBox Header="Select Export Setup" Grid.Row="1" Margin="0,0,0,15" Padding="10">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="80"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Text="Name" VerticalAlignment="Center" Grid.Row="0" Grid.Column="0" Margin="0,0,10,0"/>
+                                            <ComboBox x:Name="DWGExportSetupComboBox" Grid.Row="0" Grid.Column="1" 
+                                                     Height="28" VerticalContentAlignment="Center"/>
+                                            <Button Grid.Row="0" Grid.Column="2" Content="Modify..." 
+                                                   Width="80" Height="28" Margin="10,0,0,0"
+                                                   Style="{StaticResource SecondaryButtonStyle}"
+                                                   ToolTip="Open Revit's DWG Export Settings dialog (Temporarily disabled)"/>
+                                        </Grid>
+                                    </GroupBox>
+
+                                    <!-- Export Options -->
+                                    <GroupBox Header="Export Options" Grid.Row="2" Margin="0,0,0,15" Padding="10">
+                                        <StackPanel>
+                                            <CheckBox x:Name="ExportViewsOnSheetsCheckBox" 
+                                                     Content="Export views on sheets and links as external references"
+                                                     IsChecked="{Binding ExportSettings.ExportViewsOnSheets}" 
+                                                     Margin="0,5,0,5"/>
+                                            <CheckBox x:Name="CompactDwgFilesCheckBox"
+                                                     Content="Compact DWG files before export"
+                                                     IsChecked="{Binding ExportSettings.CompactDwgFiles}"
+                                                     Margin="0,0,0,5"
+                                                     ToolTip="Use Revit merged views mode so each sheet exports as a compact, self-contained DWG instead of companion XREF files."/>
+                                            <CheckBox x:Name="UseSharedCoordsCheckBox"
+                                                     Content="Use shared coordinates" 
+                                                     IsChecked="{Binding ExportSettings.UseSharedCoordinates}" 
+                                                     Margin="0,0,0,5"/>
+                                            <CheckBox x:Name="CreateSeparateFilesCheckBox"
+                                                     Content="Create separate files for each view/sheet" 
+                                                     IsChecked="{Binding ExportSettings.CreateSeparateFiles}" 
+                                                     Margin="0,0,0,5"/>
+                                        </StackPanel>
+                                    </GroupBox>
+
+                                    <!-- Layer Settings -->
+                                    <GroupBox Header="Layer Settings" Grid.Row="3" Margin="0,0,0,15" Padding="10">
+                                        <StackPanel>
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="Layer Mapping:" VerticalAlignment="Center" Grid.Column="0"/>
+                                                <ComboBox x:Name="LayerMappingComboBox" Grid.Column="1" Height="28"
+                                                         SelectedIndex="0">
+                                                    <ComboBoxItem Content="AIA Standard"/>
+                                                    <ComboBoxItem Content="ISO 13567"/>
+                                                    <ComboBoxItem Content="CP 83"/>
+                                                    <ComboBoxItem Content="BS 1192"/>
+                                                </ComboBox>
+                                            </Grid>
+                                            
+                                            <CheckBox Content="Export object data" 
+                                                     IsChecked="{Binding ExportSettings.ExportObjectData}"
+                                                     Margin="0,0,0,5"/>
+                                            <CheckBox Content="Export room/area as polylines" 
+                                                     IsChecked="{Binding ExportSettings.ExportRoomsAsPolylines}"
+                                                     Margin="0,0,0,5"/>
+                                        </StackPanel>
+                                    </GroupBox>
+
+                                    <!-- File Format -->
+                                    <GroupBox Header="File Format" Grid.Row="4" Margin="0,0,0,15" Padding="10">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <TextBlock Text="DWG Version:" VerticalAlignment="Center" Grid.Column="0"/>
+                                            <ComboBox x:Name="DWGVersionComboBox" Grid.Column="1" Height="28"
+                                                     SelectedIndex="0">
+                                                <ComboBoxItem Content="AutoCAD 2018"/>
+                                                <ComboBoxItem Content="AutoCAD 2013"/>
+                                                <ComboBoxItem Content="AutoCAD 2010"/>
+                                                <ComboBoxItem Content="AutoCAD 2007"/>
+                                            </ComboBox>
+                                        </Grid>
+                                    </GroupBox>
+
+                                    <!-- Advanced Settings -->
+                                    <GroupBox Header="Advanced Settings (DA4R)" Grid.Row="5" Margin="0,0,0,15" Padding="10">
+                                        <StackPanel>
+                                            <TextBlock Text="Visibility Control" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="#333"/>
+                                            <CheckBox x:Name="HideScopeBoxCheckBox"
+                                                     Content="Hide Scope Boxes" 
+                                                     IsChecked="True" 
+                                                     Margin="0,0,0,5"
+                                                     ToolTip="Hide scope boxes in exported DWG files"/>
+                                            <CheckBox x:Name="HideReferencePlaneCheckBox"
+                                                     Content="Hide Reference Planes" 
+                                                     IsChecked="True" 
+                                                     Margin="0,0,0,5"
+                                                     ToolTip="Hide reference planes in exported DWG files"/>
+                                            <CheckBox x:Name="HideUnreferenceViewTagsCheckBox"
+                                                     Content="Hide Unreferenced View Tags" 
+                                                     IsChecked="True" 
+                                                     Margin="0,0,0,10"
+                                                     ToolTip="Hide view tags that are not referenced"/>
+                                            
+                                            <Separator Margin="0,5,0,10"/>
+                                            
+                                            <TextBlock Text="Line &amp; Geometry Control" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="#333"/>
+                                            <CheckBox x:Name="PreserveCoincidentLinesCheckBox"
+                                                     Content="Preserve Coincident Lines" 
+                                                     IsChecked="False" 
+                                                     Margin="0,0,0,5"
+                                                     ToolTip="Keep overlapping lines instead of removing duplicates"/>
+                                            <CheckBox x:Name="ExportViewsOnSheetSeparatelyCheckBox"
+                                                     Content="Export Views on Sheet Separately" 
+                                                     IsChecked="False" 
+                                                     Margin="0,0,0,5"
+                                                     ToolTip="Export each view on a sheet as separate DWG file"/>
+                                        </StackPanel>
+                                    </GroupBox>
+
+                                    <!-- Important Note -->
+                                    <GroupBox Header="Important Note" Grid.Row="6" Padding="10">
+                                        <TextBlock TextWrapping="Wrap" Foreground="#666666" FontStyle="Italic">
+                                            <Run Text="To create or modify an Export Setup, click the "/>
+                                            <Run Text="'Modify...'" FontWeight="Bold"/>
+                                            <Run Text=" button above to open Revit's native DWG Export Settings dialog. You can create and save custom export configurations there."/>
+                                        </TextBlock>
+                                    </GroupBox>
+                                </Grid>
+                            </ScrollViewer>
+                        </TabItem>
+
+                        <!-- NWC Settings Tab -->
+                        <TabItem Header="NWC Settings" IsEnabled="{Binding ExportSettings.IsNwcSelected}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="15">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Format Icons Row -->
+                                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,20">
+                                        <!-- PDF -->
+                                        <Border Background="#FFF3E0" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="PDFCheckNWC" IsChecked="{Binding ExportSettings.IsPdfSelected}" 
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="📄 PDF" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#FF6D00"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- DWG -->
+                                        <Border Background="#E3F2FD" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="DWGCheckNWC" IsChecked="{Binding ExportSettings.IsDwgSelected}" 
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="📐 DWG" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#1976D2"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- NWC (Active) -->
+                                        <Border Background="#FFF9C4" CornerRadius="3" Padding="10,5" Margin="0,0,10,0"
+                                                BorderBrush="#F57F17" BorderThickness="2">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="NWCCheckNWC" IsChecked="True" 
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="🔧 NWC" FontWeight="Bold" VerticalAlignment="Center" Foreground="#F57F17"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- IFC -->
+                                        <Border Background="#E0F2F1" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="IFCCheckNWC" IsChecked="{Binding ExportSettings.IsIfcSelected}" 
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="🏗️ IFC" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#00796B"/>
+                                            </StackPanel>
+                                        </Border>
+                                        
+                                        <!-- DXF -->
+                                        <Border Background="#F3E5F5" CornerRadius="3" Padding="10,5">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="DXFCheckNWC" IsChecked="{Binding ExportSettings.IsDxfSelected}" 
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="📊 DXF" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#7B1FA2"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+
+                                    <!-- NWC Options -->
+                                    <Grid Grid.Row="1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Standard options -->
+                                        <GroupBox Header="Standard options" Grid.Column="0" Margin="0,0,10,0" 
+                                                  BorderBrush="#E1E1E1" BorderThickness="1">
+                                            <StackPanel Margin="10">
+                                                <CheckBox Content="Convert construction parts" 
+                                                          IsChecked="{Binding NWCSettings.ConvertConstructionParts}"
+                                                          Margin="0,0,0,8" FontSize="13"/>
+                                                <CheckBox Content="Convert element Ids" 
+                                                          IsChecked="{Binding NWCSettings.ConvertElementIds}"
+                                                          Margin="0,0,0,8" FontSize="13"/>
+
+                                                <!-- Convert element parameters -->
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <TextBlock Text="Convert element parameters" VerticalAlignment="Center" 
+                                                               Width="180" FontSize="13"/>
+                                                    <ComboBox Width="120" FontSize="13"
+                                                              SelectedItem="{Binding NWCSettings.ConvertElementParameters}">
+                                                        <ComboBoxItem Content="None"/>
+                                                        <ComboBoxItem Content="Elements"/>
+                                                        <ComboBoxItem Content="All" IsSelected="True"/>
+                                                    </ComboBox>
+                                                </StackPanel>
+
+                                                <CheckBox Content="Convert element properties" 
+                                                          IsChecked="{Binding NWCSettings.ConvertElementProperties}"
+                                                          Margin="0,0,0,8" FontSize="13"/>
+                                                <CheckBox Content="Convert linked files" 
+                                                          IsChecked="{Binding NWCSettings.ConvertLinkedFiles}"
+                                                          Margin="0,0,0,8" FontSize="13"/>
+                                                <CheckBox Content="Convert room as attribute" 
+                                                          IsChecked="{Binding NWCSettings.ConvertRoomAsAttribute}"
+                                                          Margin="0,0,0,8" FontSize="13"/>
+                                                <CheckBox Content="Convert URLs" 
+                                                          IsChecked="{Binding NWCSettings.ConvertURLs}"
+                                                          Margin="0,0,0,8" FontSize="13"/>
+
+                                                <!-- Coordinates -->
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <TextBlock Text="Coordinates" VerticalAlignment="Center" 
+                                                               Width="180" FontSize="13"/>
+                                                    <ComboBox Width="120" FontSize="13"
+                                                              SelectedItem="{Binding NWCSettings.Coordinates}">
+                                                        <ComboBoxItem Content="Shared" IsSelected="True"/>
+                                                        <ComboBoxItem Content="Project Internal"/>
+                                                    </ComboBox>
+                                                </StackPanel>
+
+                                                <CheckBox Content="Divide file into levels" 
+                                                          IsChecked="{Binding NWCSettings.DivideFileIntoLevels}"
+                                                          Margin="0,0,0,8" FontSize="13"/>
+                                                <CheckBox Content="Embed Textures" 
+                                                          IsChecked="{Binding NWCSettings.EmbedTextures}"
+                                                          Margin="0,0,0,8" FontSize="13"/>
+
+                                                <!-- Export scope -->
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <TextBlock Text="Export" VerticalAlignment="Center" 
+                                                               Width="180" FontSize="13"/>
+                                                    <ComboBox Width="120" FontSize="13"
+                                                              SelectedValue="{Binding NWCSettings.ExportScope}">
+                                                        <ComboBoxItem Content="Current view" IsSelected="True"/>
+                                                        <ComboBoxItem Content="Model"/>
+                                                    </ComboBox>
+                                                </StackPanel>
+
+                                                <CheckBox Content="Export room geometry" 
+                                                          IsChecked="{Binding NWCSettings.ExportRoomGeometry}"
+                                                          Margin="0,0,0,8" FontSize="13"/>
+                                                <CheckBox Content="Separate Custom properties" 
+                                                          IsChecked="{Binding NWCSettings.SeparateCustomProperties}"
+                                                          Margin="0,0,0,8" FontSize="13"/>
+                                                <CheckBox Content="Strict Sectioning" 
+                                                          IsChecked="{Binding NWCSettings.StrictSectioning}"
+                                                          Margin="0,0,0,8" FontSize="13"/>
+                                                <CheckBox Content="Try and find missing materials" 
+                                                          IsChecked="{Binding NWCSettings.TryAndFindMissingMaterials}"
+                                                          Margin="0,0,0,8" FontSize="13"/>
+                                                <CheckBox Content="Type properties on Elements" 
+                                                          IsChecked="{Binding NWCSettings.TypePropertiesOnElements}"
+                                                          FontSize="13"/>
+                                            </StackPanel>
+                                        </GroupBox>
+
+                                        <!-- Revit 2020 & above options -->
+                                        <GroupBox Header="Revit 2020 &amp; above" Grid.Column="1" 
+                                                  BorderBrush="#E1E1E1" BorderThickness="1">
+                                            <StackPanel Margin="10">
+                                                <CheckBox Content="Convert linked CAD format" 
+                                                          IsChecked="{Binding NWCSettings.ConvertLinkedCADFormats}"
+                                                          Margin="0,0,0,8" FontSize="13"/>
+                                                <CheckBox Content="Convert lights" 
+                                                          IsChecked="{Binding NWCSettings.ConvertLights}"
+                                                          Margin="0,0,0,15" FontSize="13"/>
+
+                                                <!-- Faceting factor -->
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="Faceting factor" VerticalAlignment="Center" 
+                                                               Width="120" FontSize="13"/>
+                                                    <TextBox Width="80" Height="25" 
+                                                             Text="{Binding NWCSettings.FacetingFactor}"
+                                                             VerticalContentAlignment="Center" 
+                                                             HorizontalContentAlignment="Right" FontSize="13"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </GroupBox>
+                                    </Grid>
+                                </Grid>
+                            </ScrollViewer>
+                        </TabItem>
+
+                        <!-- IFC Settings Tab -->
+                        <TabItem Header="IFC Settings" IsEnabled="{Binding ExportSettings.IsIfcSelected}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="15">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Format Icons Row -->
+                                    <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,20">
+                                        <!-- PDF -->
+                                        <Border Background="#FFEBEE" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="PDFCheckIFC" IsChecked="{Binding ExportSettings.IsPdfSelected}" 
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="📄 PDF" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#D32F2F"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- DWG -->
+                                        <Border Background="#E3F2FD" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="DWGCheckIFC" IsChecked="{Binding ExportSettings.IsDwgSelected}" 
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="📐 DWG" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#1976D2"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- NWC -->
+                                        <Border Background="#FFF9C4" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="NWCCheckIFC" IsChecked="{Binding ExportSettings.IsNwcSelected}" 
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="🔧 NWC" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#F57F17"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- IFC - Highlighted -->
+                                        <Border Background="#E0F2F1" BorderBrush="#00796B" BorderThickness="2" 
+                                                CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="IFCCheckIFC" IsChecked="{Binding ExportSettings.IsIfcSelected}" 
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="🏗️ IFC" FontWeight="Bold" VerticalAlignment="Center" Foreground="#00796B"/>
+                                            </StackPanel>
+                                        </Border>
+                                        
+                                        <!-- DXF -->
+                                        <Border Background="#F3E5F5" CornerRadius="3" Padding="10,5">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="DXFCheckIFC" IsChecked="{Binding ExportSettings.IsDxfSelected}" 
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="📊 DXF" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#7B1FA2"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+
+                                    <!-- IFC Settings Content - 3 Columns -->
+                                    <Grid Grid.Row="1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Column 1: Setup & General + Additional Contents -->
+                                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                            <!-- Setup & General -->
+                                            <GroupBox Header="Setup &amp; General" Margin="0,0,0,0"
+                                                      BorderBrush="#E1E1E1" BorderThickness="1">
+                                                <StackPanel Margin="10">
+                                                    <!-- Current Setup -->
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                                        <TextBlock Text="Current Setup" VerticalAlignment="Center" Width="130" FontSize="13"/>
+                                                        <ComboBox x:Name="CurrentSetupComboIFC" Width="160" FontSize="13"
+                                                                  ItemsSource="{Binding IFCCurrentSetups}"
+                                                                  SelectedItem="{Binding SelectedIFCSetup, Mode=TwoWay}"
+                                                                  Margin="10,0,0,0"/>
+                                                    </StackPanel>
+
+                                                    <!-- IFC Version -->
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                        <TextBlock Text="IFC Version" VerticalAlignment="Center" Width="130" FontSize="13"/>
+                                                        <ComboBox x:Name="IFCVersionComboIFC" Width="160" FontSize="13"
+                                                                  SelectedValue="{Binding IFCSettings.IFCVersion, Mode=TwoWay}"
+                                                                  SelectedValuePath="Content"
+                                                                  Margin="10,0,0,0">
+                                                            <ComboBoxItem Content="IFC 2x3 Coordination View 2.0" IsSelected="True"/>
+                                                            <ComboBoxItem Content="IFC 2x3 Coordination View"/>
+                                                            <ComboBoxItem Content="IFC 2x2 Coordination View"/>
+                                                            <ComboBoxItem Content="IFC 2x3 GSA Concept Design BIM 2010"/>
+                                                            <ComboBoxItem Content="IFC 2x3 Basic FM Handover View"/>
+                                                            <ComboBoxItem Content="IFC 2x2 Singapore BCA e-Plan Check"/>
+                                                            <ComboBoxItem Content="IFC 2x3 COBie 2.4 Design Deliverable View"/>
+                                                            <ComboBoxItem Content="IFC4 Reference View"/>
+                                                            <ComboBoxItem Content="IFC4 Design Transfer View"/>
+                                                            <ComboBoxItem Content="IFC4 for General Use"/>
+                                                        </ComboBox>
+                                                    </StackPanel>
+
+                                                    <!-- File Type -->
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                        <TextBlock Text="File Type" VerticalAlignment="Center" Width="130" FontSize="13"/>
+                                                        <ComboBox x:Name="IFCFileTypeComboIFC" Width="160" FontSize="13"
+                                                                  SelectedValue="{Binding IFCSettings.FileType, Mode=TwoWay}"
+                                                                  SelectedValuePath="Content"
+                                                                  Margin="10,0,0,0">
+                                                            <ComboBoxItem Content="IFC" IsSelected="True"/>
+                                                            <ComboBoxItem Content="IFC XML"/>
+                                                            <ComboBoxItem Content="Zipped IFC"/>
+                                                            <ComboBoxItem Content="Zipped IFC XML"/>
+                                                        </ComboBox>
+                                                    </StackPanel>
+
+                                                    <!-- Phase to export -->
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                        <TextBlock Text="Phase to export" VerticalAlignment="Center" Width="130" FontSize="13"/>
+                                                        <ComboBox x:Name="IFCPhaseComboIFC" Width="160" FontSize="13"
+                                                                  SelectedValue="{Binding IFCSettings.PhaseToExport, Mode=TwoWay}"
+                                                                  SelectedValuePath="Content"
+                                                                  Margin="10,0,0,0">
+                                                            <ComboBoxItem Content="Default phase to export" IsSelected="True"/>
+                                                            <ComboBoxItem Content="Existing"/>
+                                                            <ComboBoxItem Content="New Construction"/>
+                                                        </ComboBox>
+                                                    </StackPanel>
+
+                                                    <!-- Space boundaries -->
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                        <TextBlock Text="Space boundaries" VerticalAlignment="Center" Width="130" FontSize="13"/>
+                                                        <ComboBox x:Name="SpaceBoundariesComboIFC" Width="160" FontSize="13"
+                                                                  SelectedValue="{Binding IFCSettings.SpaceBoundaries, Mode=TwoWay}"
+                                                                  SelectedValuePath="Content"
+                                                                  Margin="10,0,0,0">
+                                                            <ComboBoxItem Content="None" IsSelected="True"/>
+                                                            <ComboBoxItem Content="1st Level"/>
+                                                            <ComboBoxItem Content="2nd Level"/>
+                                                        </ComboBox>
+                                                    </StackPanel>
+
+                                                    <!-- Project Origin -->
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                                        <TextBlock Text="Project Origin" VerticalAlignment="Center" Width="130" FontSize="13"/>
+                                                        <ComboBox x:Name="ProjectOriginComboIFC" Width="160" FontSize="13"
+                                                                  SelectedValue="{Binding IFCSettings.ProjectOrigin, Mode=TwoWay}"
+                                                                  SelectedValuePath="Content"
+                                                                  Margin="10,0,0,0">
+                                                            <ComboBoxItem Content="Current Shared Coordinates" IsSelected="True"/>
+                                                            <ComboBoxItem Content="Site Survey Point"/>
+                                                            <ComboBoxItem Content="Project Base Point"/>
+                                                            <ComboBoxItem Content="Internal Coordinates"/>
+                                                            <ComboBoxItem Content="Project Base Point oriented in True North"/>
+                                                            <ComboBoxItem Content="Internal Origin oriented in True North"/>
+                                                        </ComboBox>
+                                                    </StackPanel>
+
+                                                    <!-- Checkboxes -->
+                                                    <CheckBox Content="Split walls and columns by level" Margin="0,0,0,8" FontSize="13"/>
+                                                    <CheckBox Content="Include Steel elements" IsChecked="True" Margin="0,0,0,15" FontSize="13"/>
+
+                                                    <!-- Buttons -->
+                                                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                                        <Button Content="File Header..." Width="120" Height="28" Margin="0,0,10,0" 
+                                                                IsEnabled="False" FontSize="13"/>
+                                                        <Button Content="Address..." Width="100" Height="28" 
+                                                                IsEnabled="False" FontSize="13"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </GroupBox>
+
+                                            <!-- Additional Contents -->
+                                            <GroupBox Header="Additional Contents" Margin="0,20,0,0"
+                                                      BorderBrush="#E1E1E1" BorderThickness="1">
+                                                <StackPanel Margin="10">
+                                                    <CheckBox Content="Export 2D plan view elements" 
+                                                              IsChecked="False" 
+                                                              Margin="0,0,0,8" FontSize="13"/>
+                                                    <CheckBox Content="Export linked files as separate IFCs" 
+                                                              IsChecked="False" 
+                                                              Margin="0,0,0,8" FontSize="13"/>
+                                                    <CheckBox Content="Export only elements visible in view" 
+                                                              IsChecked="True" 
+                                                              Margin="0,0,0,8" FontSize="13"/>
+                                                    <CheckBox Content="Export rooms in 3D view" 
+                                                              IsChecked="False" 
+                                                              FontSize="13"/>
+                                                </StackPanel>
+                                            </GroupBox>
+                                        </StackPanel>
+
+                                        <!-- Column 2: Level of Details & Property Sets -->
+                                        <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                                            <!-- Level of details -->
+                                            <GroupBox Header="Level of details" BorderBrush="#E1E1E1" BorderThickness="1" Margin="0,0,0,10">
+                                                <StackPanel Margin="10">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="Detail Level" VerticalAlignment="Center" Width="90" FontSize="13"/>
+                                                        <ComboBox x:Name="DetailLevelComboIFC" Width="140" FontSize="13"
+                                                                  SelectedValue="{Binding IFCSettings.DetailLevel, Mode=TwoWay}"
+                                                                  SelectedValuePath="Content">
+                                                            <ComboBoxItem Content="Extra Low"/>
+                                                            <ComboBoxItem Content="Low"/>
+                                                            <ComboBoxItem Content="Medium" IsSelected="True"/>
+                                                            <ComboBoxItem Content="High"/>
+                                                        </ComboBox>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </GroupBox>
+
+                                            <!-- Property Sets -->
+                                            <GroupBox Header="Property Sets" BorderBrush="#E1E1E1" BorderThickness="1">
+                                                <StackPanel Margin="10">
+                                                    <CheckBox Content="Export Revit property sets" Margin="0,0,0,8" FontSize="13"/>
+                                                    <CheckBox Content="Export IFC Common property sets" IsChecked="True" 
+                                                              Margin="0,0,0,8" FontSize="13"/>
+                                                    <CheckBox Content="Export base quantities" Margin="0,0,0,8" FontSize="13"/>
+
+                                                    <CheckBox Content="Export schedules as property sets" x:Name="ExportSchedulesCheckIFC"
+                                                              Margin="0,0,0,5" FontSize="13"/>
+                                                    <CheckBox Content="Export only schedules containing IFC, Pset, or Common in the title" 
+                                                              Margin="20,0,0,8" FontSize="12" IsEnabled="False"/>
+
+                                                    <CheckBox Content="Export user defined property sets" x:Name="ExportUserPsetsCheckIFC"
+                                                              Margin="0,0,0,5" FontSize="13"/>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                        <TextBox x:Name="UserPsetsPathTextBoxIFC" Width="200" Height="25" 
+                                                                 IsEnabled="{Binding ElementName=ExportUserPsetsCheckIFC, Path=IsChecked}" 
+                                                                 FontSize="13" VerticalContentAlignment="Center"/>
+                                                        <Button x:Name="BrowseUserPsetsButtonIFC" Content="..." Width="30" Height="25" 
+                                                                IsEnabled="{Binding ElementName=ExportUserPsetsCheckIFC, Path=IsChecked}" 
+                                                                utils:BrowseFileBehavior.TargetTextBoxName="UserPsetsPathTextBoxIFC"
+                                                                utils:BrowseFileBehavior.DialogTitle="Select User-Defined Property Sets File"
+                                                                utils:BrowseFileBehavior.FileFilter="Text Files (*.txt)|*.txt|All Files (*.*)|*.*"
+                                                                Margin="5,0,0,0" FontSize="13"/>
+                                                    </StackPanel>
+
+                                                    <CheckBox Content="Export parameter mapping table" x:Name="ExportParamMappingCheckIFC"
+                                                              Margin="0,0,0,5" FontSize="13"/>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                                        <TextBox x:Name="ParamMappingPathTextBoxIFC" Width="200" Height="25" 
+                                                                 IsEnabled="{Binding ElementName=ExportParamMappingCheckIFC, Path=IsChecked}" 
+                                                                 FontSize="13" VerticalContentAlignment="Center"/>
+                                                        <Button x:Name="BrowseParamMappingButtonIFC" Content="..." Width="30" Height="25" 
+                                                                IsEnabled="{Binding ElementName=ExportParamMappingCheckIFC, Path=IsChecked}" 
+                                                                utils:BrowseFileBehavior.TargetTextBoxName="ParamMappingPathTextBoxIFC"
+                                                                utils:BrowseFileBehavior.DialogTitle="Select Parameter Mapping Table File"
+                                                                utils:BrowseFileBehavior.FileFilter="Text Files (*.txt)|*.txt|All Files (*.*)|*.*"
+                                                                Margin="5,0,0,0" FontSize="13"/>
+                                                    </StackPanel>
+
+                                                    <Button Content="Classification Settings..." Width="180" Height="28" 
+                                                            FontSize="13" HorizontalAlignment="Left"/>
+                                                </StackPanel>
+                                            </GroupBox>
+                                        </StackPanel>
+
+                                        <!-- Column 3: Advanced & Import/Export Settings -->
+                                        <StackPanel Grid.Column="2">
+                                            <!-- Advanced -->
+                                            <GroupBox Header="Advanced" BorderBrush="#E1E1E1" BorderThickness="1" Margin="0,0,0,10">
+                                                <StackPanel Margin="10">
+                                                    <CheckBox Content="Export parts as building elements" Margin="0,0,0,8" FontSize="13"/>
+                                                    <CheckBox Content="Allow use of mixed 'Solid Model' representation" 
+                                                              Margin="0,0,0,8" FontSize="13"/>
+                                                    <CheckBox Content="Use active view when creating geometry" 
+                                                              Margin="0,0,0,8" FontSize="13"/>
+                                                    <CheckBox Content="Use family and type name for reference" 
+                                                              IsChecked="True" Margin="0,0,0,8" FontSize="13"/>
+                                                    <CheckBox Content="Use 2D room boundaries for room volume" 
+                                                              Margin="0,0,0,8" FontSize="13"/>
+                                                    <CheckBox Content="Include IFCSITE elevation in the site local placement origin" 
+                                                              Margin="0,0,0,8" FontSize="12"/>
+                                                    <CheckBox Content="Store IFC GUID in element after export" 
+                                                              Margin="0,0,0,8" FontSize="13"/>
+                                                    <CheckBox Content="Export bounding box" Margin="0,0,0,8" FontSize="13"/>
+                                                    <CheckBox Content="Keep tessellated geometry as triangulation" 
+                                                              Margin="0,0,0,8" FontSize="13"/>
+                                                    <CheckBox Content="Use Type name only for IFCType name" 
+                                                              Margin="0,0,0,8" FontSize="13"/>
+                                                    <CheckBox Content="Use visible Revit name as IFCEntity name" 
+                                                              Margin="0,0,0,8" FontSize="13"/>
+                                                </StackPanel>
+                                            </GroupBox>
+
+                                            <!-- Import/Export Settings -->
+                                            <GroupBox Header="Import/Export Settings" BorderBrush="#E1E1E1" BorderThickness="1">
+                                                <StackPanel Margin="10">
+                                                    <!-- Import Settings -->
+                                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                                        <TextBox x:Name="IFCImportPathTextBox" Width="150" Height="28" 
+                                                                 FontSize="13" VerticalContentAlignment="Center"
+                                                                 ToolTip="Path to IFC settings XML file to import"/>
+                                                        <Button x:Name="BrowseIFCImportButton" Content="..." Width="30" Height="28" 
+                                                                Margin="5,0,5,0" FontSize="13"
+                                                                utils:BrowseFileBehavior.TargetTextBoxName="IFCImportPathTextBox"
+                                                                utils:BrowseFileBehavior.DialogTitle="Select IFC Settings File to Import"
+                                                                utils:BrowseFileBehavior.FileFilter="XML Files (*.xml)|*.xml|All Files (*.*)|*.*"
+                                                                ToolTip="Browse for XML file"/>
+                                                        <Button x:Name="ImportIFCButton" Content="Import..." Width="60" Height="28" FontSize="13"
+                                                                ToolTip="Import IFC settings from XML file"/>
+                                                    </StackPanel>
+
+                                                    <!-- Export Settings -->
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBox x:Name="IFCExportPathTextBox" Width="150" Height="28" 
+                                                                 FontSize="13" VerticalContentAlignment="Center"
+                                                                 ToolTip="Path to save IFC settings XML file"/>
+                                                        <Button x:Name="BrowseIFCExportButton" Content="..." Width="30" Height="28" 
+                                                                Margin="5,0,5,0" FontSize="13"
+                                                                utils:BrowseFileBehavior.TargetTextBoxName="IFCExportPathTextBox"
+                                                                utils:BrowseFileBehavior.DialogTitle="Select Location to Save IFC Settings"
+                                                                utils:BrowseFileBehavior.FileFilter="XML Files (*.xml)|*.xml|All Files (*.*)|*.*"
+                                                                ToolTip="Browse for save location"/>
+                                                        <Button x:Name="ExportIFCButton" Content="Export..." Width="60" Height="28" FontSize="13"
+                                                                ToolTip="Export IFC settings to XML file"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </GroupBox>
+                                        </StackPanel>
+                                    </Grid>
+                                </Grid>
+                            </ScrollViewer>
+                        </TabItem>
+
+                        <!-- DXF Settings Tab -->
+                        <TabItem Header="DXF Settings" IsEnabled="{Binding ExportSettings.IsDxfSelected}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Format Icons Row -->
+                                    <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,20">
+                                        <!-- PDF -->
+                                        <Border Background="#FFF3E0" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="PDFCheckDXF" IsChecked="{Binding ExportSettings.IsPdfSelected}" 
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="📄 PDF" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#FF6D00"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- DWG -->
+                                        <Border Background="#E3F2FD" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="DWGCheckDXF" IsChecked="{Binding ExportSettings.IsDwgSelected}" 
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="📐 DWG" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#1976D2"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- NWC -->
+                                        <Border Background="#E8F5E9" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="NWCCheckDXF" IsChecked="{Binding ExportSettings.IsNwcSelected}" 
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="🔧 NWC" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#388E3C"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- IFC -->
+                                        <Border Background="#E0F2F1" CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="IFCCheckDXF" IsChecked="{Binding ExportSettings.IsIfcSelected}" 
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="🏗️ IFC" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="#00796B"/>
+                                            </StackPanel>
+                                        </Border>
+                                        
+                                        <!-- DXF (Active) -->
+                                        <Border Background="#F3E5F5" BorderBrush="#7B1FA2" BorderThickness="2" 
+                                                CornerRadius="3" Padding="10,5">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox x:Name="DXFCheckDXF" IsChecked="{Binding ExportSettings.IsDxfSelected}" 
+                                                          VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                                <TextBlock Text="📊 DXF" FontWeight="Bold" VerticalAlignment="Center" Foreground="#7B1FA2"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+
+                                    <!-- DXF Settings Content -->
+                                    <StackPanel Grid.Row="1">
+                                        <!-- View Selection Options -->
+                                        <GroupBox Header="View Selection" Margin="0,0,0,10" BorderBrush="#E1E1E1" BorderThickness="1">
+                                            <StackPanel Margin="10">
+                                                <CheckBox x:Name="DXFExportAllViewsCheckBox" Content="Export All Views" Margin="0,0,0,8" FontSize="13"
+                                                          ToolTip="Export all views in the document"/>
+                                                <CheckBox x:Name="DXFExport3DViewsCheckBox" Content="Export 3D Views" IsChecked="True" Margin="0,0,0,8" FontSize="13"
+                                                          ToolTip="Include 3D views in export"/>
+                                                <CheckBox x:Name="DXFExportPlanViewsCheckBox" Content="Export Plan Views" IsChecked="True" Margin="0,0,0,8" FontSize="13"
+                                                          ToolTip="Include plan views in export"/>
+                                                <CheckBox x:Name="DXFExportSectionViewsCheckBox" Content="Export Section Views" IsChecked="True" Margin="0,0,0,8" FontSize="13"
+                                                          ToolTip="Include section views in export"/>
+                                                <CheckBox x:Name="DXFExportSheetViewsCheckBox" Content="Export Sheet Views" Margin="0,0,0,8" FontSize="13"
+                                                          ToolTip="Include sheet views in export"/>
+                                                <CheckBox x:Name="DXFExcludeTemplateViewsCheckBox" Content="Exclude Template Views" IsChecked="True" Margin="0,0,0,8" FontSize="13"
+                                                          ToolTip="Exclude template views from export"/>
+                                            </StackPanel>
+                                        </GroupBox>
+
+                                        <!-- Export Options -->
+                                        <GroupBox Header="Export Options" Margin="0,0,0,10" BorderBrush="#E1E1E1" BorderThickness="1">
+                                            <StackPanel Margin="10">
+                                                <ComboBox x:Name="DXFVersionCombo" Margin="0,0,0,10" FontSize="13">
+                                                    <ComboBoxItem Content="AutoCAD 2013" IsSelected="True"/>
+                                                    <ComboBoxItem Content="AutoCAD 2010"/>
+                                                    <ComboBoxItem Content="AutoCAD 2007"/>
+                                                    <ComboBoxItem Content="AutoCAD 2004"/>
+                                                    <ComboBoxItem Content="AutoCAD 2000"/>
+                                                </ComboBox>
+                                                <ComboBox x:Name="DXFColorCombo" Margin="0,0,0,10" FontSize="13">
+                                                    <ComboBoxItem Content="Index Colors" IsSelected="True"/>
+                                                    <ComboBoxItem Content="True Colors"/>
+                                                </ComboBox>
+                                            </StackPanel>
+                                        </GroupBox>
+                                    </StackPanel>
+                                </Grid>
+                            </ScrollViewer>
+                        </TabItem>
+                    </TabControl>
+                </Grid>
+            </TabItem>
+
+            <!-- Create Tab -->
+            <TabItem x:Name="CreateTab">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Fill="#4CAF50" Width="8" Height="8" Margin="0,0,5,0"/>
+                        <TextBlock Text="Create"/>
+                    </StackPanel>
+                </TabItem.Header>
+
+                <Grid Margin="15">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Export Rules Section -->
+                    <GroupBox Grid.Row="0" Header="Export Rules" Margin="0,0,0,15" 
+                              BorderBrush="#E1E1E1" BorderThickness="1">
+                        <Grid Margin="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="200"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Folder Selection -->
+                            <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Text="Folder Selection:" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="13"/>
+                                <TextBox x:Name="CreateFolderPathTextBox" Width="520" Height="35" 
+                                         Text="{Binding OutputFolder, UpdateSourceTrigger=PropertyChanged}"
+                                         VerticalContentAlignment="Center" FontSize="13" VerticalAlignment="Center"/>
+                                <Button x:Name="CreateBrowseFolderButton" Content="📁" Width="45" Height="35" FontSize="14"
+                                        utils:BrowseFileBehavior.TargetTextBoxName="CreateFolderPathTextBox"
+                                        utils:BrowseFileBehavior.DialogTitle="Select Export Folder"
+                                        utils:BrowseFileBehavior.IsFolderPicker="True"
+                                        ToolTip="Browse for folder"/>
+                            </StackPanel>
+
+                            <!-- Environment Variables Info -->
+                            <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Text="Supports environment variables: " VerticalAlignment="Center" FontSize="12" Foreground="#666"/>
+                                <TextBlock VerticalAlignment="Center" FontSize="12">
+                                    <Hyperlink NavigateUri="https://help.autodesk.com" RequestNavigate="LearnMore_RequestNavigate">
+                                        <TextBlock Text="Learn More"/>
+                                    </Hyperlink>
+                                </TextBlock>
+                            </StackPanel>
+
+                            <!-- Save Options -->
+                            <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,0,10">
+                                <RadioButton x:Name="SaveAllFilesRadio" 
+                                             Content="Save all files in the same folder location" 
+                                             Margin="0,0,0,5" 
+                                             FontSize="13"
+                                             GroupName="SaveOptions"
+                                             Checked="SaveAllFilesRadio_Checked"/>
+                                <RadioButton x:Name="SaveSplitFilesRadio" 
+                                             Content="Save and split files by file format" 
+                                             FontSize="13"
+                                             GroupName="SaveOptions"
+                                             Checked="SaveSplitFilesRadio_Checked"/>
+                                
+                                <!-- Skip Empty Sheets Option -->
+                                <CheckBox x:Name="SkipEmptySheetsCheckBox"
+                                          Content="Skip empty sheets (sheets without any views placed)"
+                                          IsChecked="{Binding ExportSettings.SkipEmptySheets, Mode=TwoWay}"
+                                          ToolTip="When checked, sheets that don't have any viewports will not be exported"
+                                          Margin="0,10,0,0"
+                                          FontSize="13"/>
+                            </StackPanel>
+
+                            <!-- Progress and Report Section -->
+                            <StackPanel Grid.Row="0" Grid.RowSpan="3" Grid.Column="2" Margin="20,0,0,0">
+                                <!-- Progress Bar -->
+                                <TextBlock x:Name="ProgressPercentageText" 
+                                           Text="Completed 0%" 
+                                           FontSize="12" 
+                                           Margin="0,0,0,5"/>
+                                <ProgressBar x:Name="ExportProgressBar" 
+                                             Height="20" 
+                                             Value="0" 
+                                             Maximum="100" 
+                                             Margin="0,0,0,15"/>
+
+                                <!-- Report Dropdown -->
+                                <TextBlock Text="Export Report:" FontSize="12" Margin="0,0,0,5"/>
+                                <ComboBox x:Name="ReportComboBox" 
+                                          Height="25" 
+                                          Margin="0,0,0,10"
+                                          FontSize="13">
+                                    <ComboBoxItem Content="Don't Save Report" IsSelected="True"/>
+                                    <ComboBoxItem Content="Save CSV Report"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Export Queue DataGrid -->
+                    <GroupBox Grid.Row="1" Header="Export Queue" Margin="0,0,0,15"
+                              BorderBrush="#E1E1E1" BorderThickness="1">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Action Buttons -->
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,5,0,10">
+                                <Button x:Name="SetPaperSizeButton" 
+                                        Content="Set Paper Size" 
+                                        Width="120" 
+                                        Height="28" 
+                                        Margin="0,0,5,0" 
+                                        FontSize="12"
+                                        Background="#607D8B"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        Click="SetPaperSizeButton_Click"
+                                        ToolTip="Set paper size for selected sheets"/>
+                                <Button x:Name="SetOrientationButton" 
+                                        Content="Set Orientation" 
+                                        Width="120" 
+                                        Height="28" 
+                                        Margin="0,0,5,0"
+                                        FontSize="12"
+                                        Background="#607D8B"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        Click="SetOrientationButton_Click"
+                                        ToolTip="Set orientation for selected sheets"/>
+                                <Button x:Name="RetryFailedButton"
+                                        Content="Retry Failed"
+                                        Width="100"
+                                        Height="28"
+                                        FontSize="12"
+                                        Background="#795548"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        Click="RetryFailedButton_Click"
+                                        ToolTip="Retry failed or skipped queue items"/>
+                            </StackPanel>
+
+                            <!-- Export Queue DataGrid -->
+                            <DataGrid Grid.Row="1" 
+                                      x:Name="ExportQueueDataGrid"
+                                      AutoGenerateColumns="False"
+                                      CanUserAddRows="False"
+                                      CanUserDeleteRows="False"
+                                      GridLinesVisibility="Horizontal"
+                                      HeadersVisibility="Column"
+                                      AlternatingRowBackground="#F9F9F9"
+                                      RowBackground="White"
+                                      RowHeaderWidth="0"
+                                      SelectionMode="Extended"
+                                      BorderThickness="1"
+                                      BorderBrush="#E1E1E1"
+                                      ItemsSource="{Binding ExportQueueItems}">
+                                <DataGrid.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Open Sheet/View" Click="OpenQueueItem_Click"/>
+                                        <Separator/>
+                                        <MenuItem Header="Remove from Queue" Click="RemoveQueueItems_Click"/>
+                                        <Separator/>
+                                        <MenuItem Header="Set Paper Size" Click="SetPaperSizeButton_Click"/>
+                                        <MenuItem Header="Set Orientation" Click="SetOrientationButton_Click"/>
+                                        <Separator/>
+                                        <MenuItem Header="Retry Failed" Click="RetryFailedButton_Click"/>
+                                    </ContextMenu>
+                                </DataGrid.ContextMenu>
+
+                                <DataGrid.Columns>
+                                    <!-- Checkbox Column -->
+                                    <DataGridCheckBoxColumn Header="✓" 
+                                                           Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" 
+                                                           Width="35">
+                                        <DataGridCheckBoxColumn.ElementStyle>
+                                            <Style TargetType="CheckBox">
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                                <Setter Property="Margin" Value="0"/>
+                                            </Style>
+                                        </DataGridCheckBoxColumn.ElementStyle>
+                                    </DataGridCheckBoxColumn>
+
+                                    <!-- View/Sheet Number -->
+                                    <DataGridTextColumn Header="View/Sheet Number" 
+                                                       Binding="{Binding ViewSheetNumber}" 
+                                                       Width="140"
+                                                       IsReadOnly="True">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                                <Setter Property="Padding" Value="5,0"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+
+                                    <DataGridTextColumn Header="Output"
+                                                        Binding="{Binding OutputPath}"
+                                                        Width="160"
+                                                        IsReadOnly="True"/>
+
+                                    <DataGridTextColumn Header="Error"
+                                                        Binding="{Binding ErrorMessage}"
+                                                        Width="160"
+                                                        IsReadOnly="True"/>
+
+                                    <!-- View/Sheet Name -->
+                                    <DataGridTextColumn Header="View/Sheet Name" 
+                                                       Binding="{Binding ViewSheetName}" 
+                                                       Width="*"
+                                                       IsReadOnly="True">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                                <Setter Property="Padding" Value="5,0"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+
+                                    <!-- Format -->
+                                    <DataGridTextColumn Header="Format" 
+                                                       Binding="{Binding Format}" 
+                                                       Width="80"
+                                                       IsReadOnly="True">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+
+                                    <!-- Size -->
+                                    <DataGridTextColumn Header="Size" 
+                                                       Binding="{Binding Size}" 
+                                                       Width="100"
+                                                       IsReadOnly="True">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+
+                                    <!-- Orientation -->
+                                    <DataGridTextColumn Header="Orientation" 
+                                                       Binding="{Binding Orientation}" 
+                                                       Width="90"
+                                                       IsReadOnly="True">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+
+                                    <!-- ⚠️ REMOVED: Progress Column (user request "bỏ phần khoan tròn") -->
+                                    <!-- User chỉ cần thấy Status, không cần progress bar chi tiết -->
+
+                                    <!-- Status Column -->
+                                    <DataGridTextColumn Header="Status" 
+                                                       Binding="{Binding Status}" 
+                                                       Width="100"
+                                                       IsReadOnly="True">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                                <Setter Property="FontSize" Value="11"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Status}" Value="Completed">
+                                                        <Setter Property="Foreground" Value="#4CAF50"/>
+                                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Status}" Value="Processing">
+                                                        <Setter Property="Foreground" Value="#FF9800"/>
+                                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Status}" Value="Pending">
+                                                        <Setter Property="Foreground" Value="#9E9E9E"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Status}" Value="Error">
+                                                        <Setter Property="Foreground" Value="#F44336"/>
+                                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Status}" Value="Failed">
+                                                        <Setter Property="Foreground" Value="#F44336"/>
+                                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Status}" Value="Skipped">
+                                                        <Setter Property="Foreground" Value="#9E9E9E"/>
+                                                        <Setter Property="FontStyle" Value="Italic"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                </DataGrid.Columns>
+
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow">
+                                        <Setter Property="Height" Value="32"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#F5F5F5"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.RowStyle>
+                            </DataGrid>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Scheduling Assistant Section -->
+                    <GroupBox Grid.Row="2" Header="Scheduling Assistant ⭐" Margin="0,0,0,10"
+                              BorderBrush="#E1E1E1" BorderThickness="1">
+                        <Grid Margin="10">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Schedule Toggle -->
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                <ToggleButton x:Name="ScheduleToggle" 
+                                             Width="50" 
+                                             Height="25" 
+                                             IsChecked="False" 
+                                             Checked="ScheduleToggle_Checked"
+                                             Unchecked="ScheduleToggle_Unchecked">
+                                    <ToggleButton.Template>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border Background="{TemplateBinding Background}" 
+                                                    BorderBrush="#CCCCCC" 
+                                                    BorderThickness="1" 
+                                                    CornerRadius="12">
+                                                <Grid>
+                                                    <Ellipse x:Name="SwitchThumb" 
+                                                            Width="20" Height="20" 
+                                                            Fill="White" 
+                                                            HorizontalAlignment="Left" 
+                                                            Margin="2"/>
+                                                </Grid>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter Property="Background" Value="#4CAF50"/>
+                                                    <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
+                                                </Trigger>
+                                                <Trigger Property="IsChecked" Value="False">
+                                                    <Setter Property="Background" Value="#CCCCCC"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </ToggleButton.Template>
+                                </ToggleButton>
+                                <TextBlock Text="Schedule Publish" 
+                                          VerticalAlignment="Center" 
+                                          Margin="10,0,0,0" 
+                                          FontSize="13"
+                                          FontWeight="SemiBold"/>
+                                <TextBlock x:Name="ScheduleStatusText" 
+                                          Text="The Scheduling Assistant is off." 
+                                          VerticalAlignment="Center" 
+                                          Margin="15,0,0,0" 
+                                          FontStyle="Italic"
+                                          FontSize="12"
+                                          Foreground="#666"/>
+                                <Button x:Name="RefreshScheduleButton" 
+                                       Content="🔄" 
+                                       Width="28" 
+                                       Height="25" 
+                                       Margin="10,0,0,0" 
+                                       FontSize="14"
+                                       Background="#2196F3"
+                                       Foreground="White"
+                                       BorderThickness="0"
+                                       Click="RefreshScheduleButton_Click"
+                                       ToolTip="Refresh schedule settings"/>
+                            </StackPanel>
+
+                            <!-- Schedule Settings -->
+                            <StackPanel Grid.Row="1" 
+                                       x:Name="ScheduleSettingsPanel" 
+                                       Visibility="Collapsed"
+                                       Margin="0,10,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Starting Date -->
+                                    <StackPanel Grid.Column="0" Margin="0,0,20,0">
+                                        <TextBlock Text="Choose Starting Date" 
+                                                  Margin="0,0,0,5" 
+                                                  FontSize="12"
+                                                  FontWeight="SemiBold"/>
+                                        <DatePicker x:Name="StartingDatePicker" 
+                                                   Width="150"
+                                                   Height="28"
+                                                   FontSize="12"/>
+                                    </StackPanel>
+
+                                    <!-- Time -->
+                                    <StackPanel Grid.Column="1" Margin="0,0,20,0">
+                                        <TextBlock Text="Choose Time" 
+                                                  Margin="0,0,0,5" 
+                                                  FontSize="12"
+                                                  FontWeight="SemiBold"/>
+                                        <ComboBox x:Name="TimeComboBox" 
+                                                 Width="100"
+                                                 Height="28"
+                                                 FontSize="12">
+                                            <ComboBoxItem Content="12:00 AM"/>
+                                            <ComboBoxItem Content="01:00 AM"/>
+                                            <ComboBoxItem Content="02:00 AM"/>
+                                            <ComboBoxItem Content="03:00 AM"/>
+                                            <ComboBoxItem Content="04:00 AM"/>
+                                            <ComboBoxItem Content="05:00 AM"/>
+                                            <ComboBoxItem Content="06:00 AM"/>
+                                            <ComboBoxItem Content="07:00 AM"/>
+                                            <ComboBoxItem Content="08:00 AM"/>
+                                            <ComboBoxItem Content="09:00 AM"/>
+                                            <ComboBoxItem Content="10:00 AM"/>
+                                            <ComboBoxItem Content="11:00 AM"/>
+                                            <ComboBoxItem Content="12:00 PM"/>
+                                            <ComboBoxItem Content="01:00 PM"/>
+                                            <ComboBoxItem Content="02:00 PM"/>
+                                            <ComboBoxItem Content="03:00 PM"/>
+                                            <ComboBoxItem Content="04:00 PM"/>
+                                            <ComboBoxItem Content="05:00 PM"/>
+                                            <ComboBoxItem Content="06:00 PM"/>
+                                            <ComboBoxItem Content="07:00 PM"/>
+                                            <ComboBoxItem Content="08:00 PM"/>
+                                            <ComboBoxItem Content="09:00 PM"/>
+                                            <ComboBoxItem Content="10:00 PM"/>
+                                            <ComboBoxItem Content="11:00 PM"/>
+                                        </ComboBox>
+                                    </StackPanel>
+
+                                    <!-- Repeat Options -->
+                                    <StackPanel Grid.Column="2" Margin="0,0,20,0">
+                                        <TextBlock Text="Repeat" 
+                                                  Margin="0,0,0,5" 
+                                                  FontSize="12"
+                                                  FontWeight="SemiBold"/>
+                                        <ComboBox x:Name="RepeatComboBox" 
+                                                 Width="140"
+                                                 Height="28"
+                                                 FontSize="12"
+                                                 SelectionChanged="RepeatComboBox_SelectionChanged">
+                                            <ComboBoxItem Content="Does not repeat" IsSelected="True"/>
+                                            <ComboBoxItem Content="Daily"/>
+                                            <ComboBoxItem Content="Weekly"/>
+                                            <ComboBoxItem Content="Monthly"/>
+                                        </ComboBox>
+                                    </StackPanel>
+
+                                    <!-- Days of Week -->
+                                    <StackPanel Grid.Column="3" 
+                                               x:Name="DaysOfWeekPanel"
+                                               Orientation="Horizontal"
+                                               VerticalAlignment="Bottom"
+                                               Visibility="Collapsed">
+                                        <CheckBox x:Name="MondayCheck" Content="Mon" Margin="0,0,10,0" FontSize="12"/>
+                                        <CheckBox x:Name="TuesdayCheck" Content="Tue" Margin="0,0,10,0" FontSize="12"/>
+                                        <CheckBox x:Name="WednesdayCheck" Content="Wed" Margin="0,0,10,0" FontSize="12"/>
+                                        <CheckBox x:Name="ThursdayCheck" Content="Thu" Margin="0,0,10,0" FontSize="12"/>
+                                        <CheckBox x:Name="FridayCheck" Content="Fri" Margin="0,0,10,0" FontSize="12"/>
+                                        <CheckBox x:Name="SaturdayCheck" Content="Sat" Margin="0,0,10,0" FontSize="12"/>
+                                        <CheckBox x:Name="SundayCheck" Content="Sun" FontSize="12"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Start Export Button -->
+                            <Button Grid.Row="2" 
+                                   x:Name="StartExportButton" 
+                                   Content="START EXPORT" 
+                                   Height="40" 
+                                   FontSize="14" 
+                                   FontWeight="Bold"
+                                   Background="#4CAF50" 
+                                   Foreground="White"
+                                   BorderThickness="0"
+                                   HorizontalAlignment="Center"
+                                   Width="200"
+                                   Margin="0,15,0,0"
+                                   Click="StartExportButton_Click">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="{TemplateBinding Background}" 
+                                                            CornerRadius="3" 
+                                                            BorderThickness="0">
+                                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                                         VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#45A049"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsEnabled" Value="False">
+                                                            <Setter Property="Background" Value="#CCCCCC"/>
+                                                            <Setter Property="Foreground" Value="#666666"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- Bottom Section -->
+        <Border Grid.Row="1" BorderBrush="LightGray" BorderThickness="0,1,0,0" Padding="15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Selection Statistics (Left side) -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Border Background="#E3F2FD" BorderBrush="#2196F3" BorderThickness="1" 
+                            CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📄" FontSize="16" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="SheetsCountText" Text="0 sheets selected" 
+                                       FontWeight="SemiBold" Foreground="#1976D2" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#E8F5E8" BorderBrush="#4CAF50" BorderThickness="1" 
+                            CornerRadius="3" Padding="10,5" Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="👁️" FontSize="16" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="ViewsCountText" Text="0 views selected" 
+                                       FontWeight="SemiBold" Foreground="#388E3C" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#FFF3E0" BorderBrush="#FF9800" BorderThickness="1" 
+                            CornerRadius="3" Padding="10,5">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📊" FontSize="16" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TotalItemsText" Text="Total: 0 items" 
+                                       FontWeight="SemiBold" Foreground="#F57C00" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                
+                <!-- Navigation Buttons (Right side) -->
+                <Button Grid.Column="2" x:Name="BackButton" Content="Back" 
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Width="80" Height="40" Margin="0,0,10,0"
+                        IsEnabled="False"
+                        Click="BackButton_Click"/>
+                <Button Grid.Column="3" x:Name="NextButton" Content="Next" 
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Width="80" Height="40"
+                        Click="NextButton_Click"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

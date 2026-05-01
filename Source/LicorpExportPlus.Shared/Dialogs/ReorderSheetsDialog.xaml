@@ -1,0 +1,95 @@
+<Window x:Class="LicorpExportPlus.Dialogs.ReorderSheetsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Reorder Sheets and Views" 
+        Height="500" 
+        Width="600"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        ShowInTaskbar="False">
+    
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <TextBlock Grid.Row="0"
+                   Text="Order sheets and views"
+                   FontWeight="SemiBold"
+                   FontSize="13"/>
+
+        <!-- Ordered table -->
+        <Border Grid.Row="2" 
+                BorderBrush="LightGray" 
+                BorderThickness="1">
+            <DataGrid x:Name="ItemsDataGrid"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      HeadersVisibility="Column"
+                      GridLinesVisibility="Horizontal"
+                      SelectionMode="Single"
+                      AllowDrop="True"
+                      PreviewMouseLeftButtonDown="ItemsGrid_PreviewMouseLeftButtonDown"
+                      PreviewMouseMove="ItemsGrid_PreviewMouseMove"
+                      Drop="ItemsGrid_Drop"
+                      DragOver="ItemsGrid_DragOver">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Sheet Number" Binding="{Binding Number}" Width="160" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Sheet / View Name" Binding="{Binding Name}" Width="*" IsReadOnly="True"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <!-- Buttons -->
+        <Grid Grid.Row="4">
+            <TextBlock HorizontalAlignment="Left"
+                       VerticalAlignment="Center"
+                       Text="{Binding ElementName=ItemsDataGrid, Path=Items.Count, StringFormat=Total number of items {0}}"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Content="⏫" 
+                    Width="36" 
+                    Height="30" 
+                    ToolTip="Move to top"
+                    Click="MoveTop_Click"
+                    Margin="0,0,6,0"/>
+                <Button Content="▲" 
+                    Width="36" 
+                    Height="30" 
+                    ToolTip="Move up"
+                    Click="MoveUp_Click"
+                    Margin="0,0,6,0"/>
+                <Button Content="▼" 
+                    Width="36" 
+                    Height="30" 
+                    ToolTip="Move down"
+                    Click="MoveDown_Click"
+                    Margin="0,0,6,0"/>
+                <Button Content="⏬" 
+                    Width="36" 
+                    Height="30" 
+                    ToolTip="Move to bottom"
+                    Click="MoveBottom_Click"
+                    Margin="0,0,6,0"/>
+                <Button Content="↻" 
+                    Width="36" 
+                    Height="30" 
+                    ToolTip="Reset to original order"
+                    Click="ResetOrder_Click"/>
+            </StackPanel>
+
+            <Button Content="OK" 
+                    HorizontalAlignment="Right"
+                    Width="80" 
+                    Height="30" 
+                    IsDefault="True"
+                    Click="OK_Click"/>
+        </Grid>
+    </Grid>
+</Window>

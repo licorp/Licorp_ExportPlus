@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <Company>Licorp</Company>
+    <Authors>Licorp</Authors>
+    <Version>1.0.0</Version>
+    <AddInId>A7E4B1C3-8D2F-4A5E-9F6B-3C1D7E8A2B5F</AddInId>
+    <VendorId>LICORP</VendorId>
+    <VendorDescription>Licorp, licorp.vn</VendorDescription>
+    <RibbonTabName>Licorp</RibbonTabName>
+    <RibbonPanelName>Export</RibbonPanelName>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+</Project>

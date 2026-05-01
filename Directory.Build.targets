@@ -1,0 +1,5 @@
+<Project>
+ <PropertyGroup>
+  <DeployRevitAddin Condition="'$(DeployRevitAddin)' == ''">true</DeployRevitAddin>
+ </PropertyGroup>
+</Project>

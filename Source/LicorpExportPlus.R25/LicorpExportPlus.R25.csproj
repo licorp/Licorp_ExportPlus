@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+ <PropertyGroup>
+  <TargetFramework>net8.0-windows</TargetFramework>
+  <UseWPF>true</UseWPF>
+  <UseWindowsForms>true</UseWindowsForms>
+  <RevitVersion>2025</RevitVersion>
+  <AssemblyName>LicorpExportPlus</AssemblyName>
+  <RootNamespace>LicorpExportPlus</RootNamespace>
+  <Configurations>Debug;Release</Configurations>
+  <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+  <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  <OutputPath>..\..\bin\R2025\$(Configuration)\</OutputPath>
+  <DefineConstants>$(DefineConstants);REVIT2025;REVIT2025_OR_GREATER;REVIT2024_OR_GREATER</DefineConstants>
+ </PropertyGroup>
+
+   <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+  </ItemGroup>
+
+  <Import Project="..\LicorpExportPlus.Shared\LicorpExportPlus.Shared.projitems" Label="Shared" />
+
+ <ItemGroup>
+  <PackageReference Include="Nice3point.Revit.Api.RevitAPI" Version="$(RevitVersion).*" />
+  <PackageReference Include="Nice3point.Revit.Api.RevitAPIUI" Version="$(RevitVersion).*" />
+  <PackageReference Include="Nice3point.Revit.Api.AdWindows" Version="$(RevitVersion).*" />
+  <PackageReference Include="Nice3point.Revit.Toolkit" Version="$(RevitVersion).*" />
+  <PackageReference Include="Nice3point.Revit.Extensions" Version="$(RevitVersion).*" />
+  <PackageReference Include="Nice3point.Revit.Build.Tasks" Version="3.*" PrivateAssets="All" />
+ </ItemGroup>
+
+ <ItemGroup>
+  <PackageReference Include="ricaun.Revit.UI" Version="*" />
+  <PackageReference Include="ricaun.Revit.UI.Tasks" Version="*" />
+  <PackageReference Include="ricaun.Revit.UI.StatusBar" Version="*" />
+  <PackageReference Include="ricaun.Revit.DI" Version="*" />
+  <PackageReference Include="ricaun.DI" Version="*" />
+ </ItemGroup>
+
+ <ItemGroup>
+  <PackageReference Include="CommunityToolkit.Mvvm" Version="8.*" />
+  <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.*" />
+  <PackageReference Include="WPF-UI" Version="4.*" />
+ </ItemGroup>
+
+ <ItemGroup>
+  <PackageReference Include="EPPlus" Version="7.*" />
+  <PackageReference Include="ClosedXML" Version="0.105.*" />
+  <PackageReference Include="ExcelDataReader" Version="3.*" />
+  <PackageReference Include="ExcelDataReader.DataSet" Version="3.*" />
+  <PackageReference Include="DocumentFormat.OpenXml" Version="3.*" />
+  <PackageReference Include="Newtonsoft.Json" Version="13.*" />
+  <PackageReference Include="Serilog" Version="4.*" />
+  <PackageReference Include="Serilog.Sinks.File" Version="6.*" />
+ </ItemGroup>
+</Project>

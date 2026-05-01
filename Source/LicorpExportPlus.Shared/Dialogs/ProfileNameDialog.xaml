@@ -1,0 +1,99 @@
+<Window x:Class="LicorpExportPlus.Dialogs.ProfileNameDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Create Profile"
+        Width="450" Height="280"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="White">
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Profile Name -->
+        <StackPanel Grid.Row="0" Orientation="Vertical" Margin="0,0,0,10">
+            <TextBlock Text="Profile name" FontWeight="SemiBold" FontSize="13"/>
+            <TextBox x:Name="ProfileNameTextBox" Height="28" Margin="0,5,0,0" VerticalContentAlignment="Center"/>
+        </StackPanel>
+
+        <!-- Options -->
+        <GroupBox Grid.Row="1" Padding="10" Margin="0,0,0,10" BorderBrush="#CCC" BorderThickness="1">
+            <StackPanel>
+                <RadioButton x:Name="CopyCurrentRadio" Content="Copy from current settings" IsChecked="True" Margin="0,0,0,8" FontSize="12" GroupName="ProfileMode"/>
+                <RadioButton x:Name="UseDefaultRadio" Content="Use default settings" Margin="0,0,0,8" FontSize="12" GroupName="ProfileMode"/>
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton x:Name="ImportFileRadio" Content="Import from a file" VerticalAlignment="Center" FontSize="12" GroupName="ProfileMode"/>
+                    <Button x:Name="BrowseProfileFileButton"
+                            Content="..."
+                            Width="28" Height="28"
+                            Margin="10,0,0,0"
+                            Click="BrowseProfileFileButton_Click"
+                            Background="#E0E0E0"
+                            BorderThickness="0"
+                            FontWeight="Bold"
+                            Cursor="Hand"/>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- File Path Display -->
+        <TextBlock Grid.Row="2" x:Name="ImportedFilePathTextBlock"
+                   Text=""
+                   FontStyle="Italic"
+                   FontSize="11"
+                   Foreground="#555"
+                   TextTrimming="CharacterEllipsis"
+                   VerticalAlignment="Top"
+                   Margin="5,0,0,10"/>
+
+        <!-- Create / Cancel Buttons -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Cancel" Width="90" Height="32" Margin="0,0,10,0"
+                    Click="CancelButton_Click"
+                    IsCancel="True">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Background" Value="#E0E0E0"/>
+                        <Setter Property="Foreground" Value="#333"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#D0D0D0"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button x:Name="CreateButton" Content="Create" Width="90" Height="32" IsEnabled="False"
+                    Click="CreateButton_Click"
+                    IsDefault="True">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Background" Value="#0078D4"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#106EBE"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#CCC"/>
+                                <Setter Property="Foreground" Value="#888"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>

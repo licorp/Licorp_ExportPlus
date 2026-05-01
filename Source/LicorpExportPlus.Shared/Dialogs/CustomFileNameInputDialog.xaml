@@ -1,0 +1,64 @@
+<Window x:Class="LicorpExportPlus.Dialogs.CustomFileNameInputDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Custom File Name for Combined PDF" 
+        Height="250" 
+        Width="500"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+    
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <TextBlock Grid.Row="0" 
+                   Text="Enter custom file name for combined PDF:" 
+                   FontWeight="Bold"
+                   FontSize="13"/>
+
+        <!-- Input TextBox -->
+        <TextBox Grid.Row="2" 
+                 x:Name="FileNameTextBox"
+                 Height="30"
+                 VerticalContentAlignment="Center"
+                 Padding="5"/>
+
+        <!-- Help Text -->
+        <TextBlock Grid.Row="4" 
+                   TextWrapping="Wrap"
+                   Foreground="Gray"
+                   FontSize="11">
+            <Run Text="• Use plain text (e.g., 'MEP Drawings')"/>
+            <LineBreak/>
+            <Run Text="• Or use parameters like in Sheet custom naming: {Project Name}, {Sheet Number}, etc."/>
+            <LineBreak/>
+            <Run Text="• Leave empty to use default project name"/>
+        </TextBlock>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="6" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right"
+                    Margin="0,10,0,0">
+            <Button Content="OK" 
+                    Width="80" 
+                    Height="30" 
+                    IsDefault="True"
+                    Click="OK_Click"
+                    Margin="0,0,10,0"/>
+            <Button Content="Cancel" 
+                    Width="80" 
+                    Height="30" 
+                    IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>
