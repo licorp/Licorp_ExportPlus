@@ -197,6 +197,7 @@ namespace LicorpExportPlus.Views
             {
                 _outputFolder = value;
                 OnPropertyChanged(nameof(OutputFolder));
+                UpdateFilenamePreview();
             }
         }
 
@@ -337,13 +338,36 @@ namespace LicorpExportPlus.Views
         
         // Export Queue Items for Create tab
         private ObservableCollection<ExportQueueItem> _exportQueueItems;
+        private string _filenamePreviewText = "Select sheets/views and formats to preview output names.";
+
+        public string FilenamePreviewText
+        {
+            get => _filenamePreviewText;
+            set
+            {
+                _filenamePreviewText = value;
+                OnPropertyChanged(nameof(FilenamePreviewText));
+            }
+        }
+
         public ObservableCollection<ExportQueueItem> ExportQueueItems
         {
             get => _exportQueueItems;
             set
             {
+                if (_exportQueueItems != null)
+                {
+                    _exportQueueItems.CollectionChanged -= ExportQueueItems_CollectionChanged;
+                }
+
                 _exportQueueItems = value;
+                if (_exportQueueItems != null)
+                {
+                    _exportQueueItems.CollectionChanged += ExportQueueItems_CollectionChanged;
+                }
+
                 OnPropertyChanged(nameof(ExportQueueItems));
+                UpdateFilenamePreview();
             }
         }
         
@@ -3454,6 +3478,7 @@ namespace LicorpExportPlus.Views
                                 Format = format.ToUpper(),
                                 Size = GetSheetSize(sheet),
                                 Orientation = GetSheetOrientation(sheet),
+                                OutputPath = BuildQueueOutputPath(displayName, format),
                                 Progress = 0,
                                 Status = "Pending"
                             };
@@ -3502,6 +3527,7 @@ namespace LicorpExportPlus.Views
                                 Format = format.ToUpper(),
                                 Size = "-",
                                 Orientation = "-",
+                                OutputPath = BuildQueueOutputPath(displayName, format),
                                 Progress = 0,
                                 Status = "Pending"
                             };
@@ -3523,10 +3549,92 @@ namespace LicorpExportPlus.Views
                     // Debug logging removed
                 }
                 // Debug logging removed
+                UpdateFilenamePreview();
             }
             catch (Exception ex)
             {
                 // Debug logging removed
+            }
+        }
+
+        private void ExportQueueItems_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            UpdateFilenamePreview();
+        }
+
+        private string BuildQueueOutputPath(string baseName, string format)
+        {
+            var folder = GetResolvedOutputFolder();
+            var extension = GetExtensionForFormat(format);
+            var fileName = FileNameGenerator.SanitizeFileName(baseName ?? "Export");
+            return Path.Combine(folder, $"{fileName}{extension}");
+        }
+
+        private string GetResolvedOutputFolder()
+        {
+            var folder = CreateFolderPathTextBox?.Text;
+            if (string.IsNullOrWhiteSpace(folder))
+            {
+                folder = OutputFolder;
+            }
+
+            if (string.IsNullOrWhiteSpace(folder))
+            {
+                folder = ExportSettings?.OutputFolder;
+            }
+
+            if (string.IsNullOrWhiteSpace(folder))
+            {
+                folder = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            }
+
+            return FileNameGenerator.ResolveEnvironmentVariables(folder, string.Empty, DateTime.Now, sanitize: false);
+        }
+
+        private static string GetExtensionForFormat(string format)
+        {
+            switch ((format ?? string.Empty).ToUpperInvariant())
+            {
+                case "PDF": return ".pdf";
+                case "DWG": return ".dwg";
+                case "DXF": return ".dxf";
+                case "IFC": return ".ifc";
+                case "NWC": return ".nwc";
+                case "IMG": return ".png";
+                case "XML": return ".xml";
+                default: return "." + (format ?? "out").ToLowerInvariant();
+            }
+        }
+
+        private void UpdateFilenamePreview()
+        {
+            try
+            {
+                if (ExportSettings?.CombineFiles == true)
+                {
+                    var pdfItems = ExportQueueItems?.Where(i => string.Equals(i.Format, "PDF", StringComparison.OrdinalIgnoreCase)).ToList();
+                    if (pdfItems != null && pdfItems.Count > 0)
+                    {
+                        var combinedName = !string.IsNullOrWhiteSpace(ExportSettings.CombineCustomFileName)
+                            ? ExportSettings.CombineCustomFileName
+                            : $"{pdfItems.First().ViewSheetNumber}_to_{pdfItems.Last().ViewSheetNumber}_Combined";
+
+                        FilenamePreviewText = $"Combined PDF: {Path.Combine(GetResolvedOutputFolder(), FileNameGenerator.SanitizeFileName(combinedName) + ".pdf")} | Order: {string.Join(", ", pdfItems.Select(i => i.ViewSheetNumber))}";
+                        return;
+                    }
+                }
+
+                var item = ExportQueueDataGrid?.SelectedItem as ExportQueueItem
+                    ?? ExportQueueItems?.FirstOrDefault(i => i.IsSelected)
+                    ?? ExportQueueItems?.FirstOrDefault();
+
+                FilenamePreviewText = item == null
+                    ? "Select sheets/views and formats to preview output names."
+                    : $"{item.Format}: {item.OutputPath ?? BuildQueueOutputPath(item.ViewSheetName, item.Format)}";
+            }
+            catch (Exception ex)
+            {
+                FilenamePreviewText = $"Preview unavailable: {ex.Message}";
             }
         }
 
@@ -6597,6 +6705,18 @@ Tiáº¿p tá»¥c xuáº¥t file?";
 
             try
             {
+                if (string.Equals(reportType, "XLSX", StringComparison.OrdinalIgnoreCase))
+                {
+                    return ExportReportService.WriteXlsxReport(items, outputFolder);
+                }
+
+                if (string.Equals(reportType, "CSV + XLSX", StringComparison.OrdinalIgnoreCase))
+                {
+                    var csvPath = ExportReportService.WriteCsvReport(items, outputFolder);
+                    var xlsxPath = ExportReportService.WriteXlsxReport(items, outputFolder);
+                    return $"{csvPath}; {xlsxPath}";
+                }
+
                 return ExportReportService.WriteCsvReport(items, outputFolder);
             }
             catch (Exception ex)
@@ -6652,6 +6772,24 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                 // Debug logging removed
                 MessageBox.Show($"Lá»—i khi reset filter: {ex.Message}", "Lá»—i", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void CreateFolderPathTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (ExportQueueItems != null)
+            {
+                foreach (var item in ExportQueueItems)
+                {
+                    item.OutputPath = BuildQueueOutputPath(item.ViewSheetName, item.Format);
+                }
+            }
+
+            UpdateFilenamePreview();
+        }
+
+        private void ExportQueueDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            UpdateFilenamePreview();
         }
 
         private void SetCustomFileName_Click(object sender, RoutedEventArgs e)

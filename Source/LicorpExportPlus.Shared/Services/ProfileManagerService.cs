@@ -13,11 +13,13 @@ namespace LicorpExportPlus.Services
     public class ProfileManagerService
     {
         private readonly string _profilesFolder;
+        private readonly string _settingsFile;
         private const string PROFILES_FOLDER = "ExportPlusProfiles";
         private const string DEFAULT_PROFILE = "Default";
 
         public ObservableCollection<Models.Profile> Profiles { get; private set; }
         public Models.Profile CurrentProfile { get; private set; }
+        public string SharedProfilesFolder { get; private set; }
 
         public event Action<Models.Profile> ProfileChanged;
 
@@ -28,6 +30,8 @@ namespace LicorpExportPlus.Services
                 PROFILES_FOLDER);
 
             Directory.CreateDirectory(_profilesFolder);
+            _settingsFile = Path.Combine(_profilesFolder, "settings.json");
+            SharedProfilesFolder = LoadSharedProfilesFolder();
             Profiles = new ObservableCollection<Models.Profile>();
             LoadProfiles();
 
@@ -39,21 +43,20 @@ namespace LicorpExportPlus.Services
 
             try
             {
-                var profileFiles = Directory.GetFiles(_profilesFolder, "*.json");
+                var profileFiles = Directory.GetFiles(_profilesFolder, "*.json")
+                    .Where(file => !string.Equals(Path.GetFileName(file), "settings.json", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
 
                 foreach (var file in profileFiles)
                 {
-                    try
+                    AddProfileFromFile(file, isShared: false);
+                }
+
+                if (!string.IsNullOrWhiteSpace(SharedProfilesFolder) && Directory.Exists(SharedProfilesFolder))
+                {
+                    foreach (var file in Directory.GetFiles(SharedProfilesFolder, "*.json"))
                     {
-                        var json = File.ReadAllText(file);
-                        var profile = JsonConvert.DeserializeObject<Models.Profile>(json);
-                        if (profile != null)
-                        {
-                            Profiles.Add(profile);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
+                        AddProfileFromFile(file, isShared: true);
                     }
                 }
 
@@ -101,6 +104,62 @@ MessageBoxButton.OK, MessageBoxImage.Error);
 System.Windows.MessageBox.Show($"Error saving profile: {ex.Message}", "Error",
 MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        public Models.Profile ImportProfileFromFile(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+            {
+                throw new FileNotFoundException("Profile file not found.", filePath);
+            }
+
+            var json = File.ReadAllText(filePath);
+            var profile = JsonConvert.DeserializeObject<Models.Profile>(json);
+            if (profile == null)
+            {
+                throw new InvalidOperationException("Could not read profile JSON.");
+            }
+
+            profile.Id = Guid.NewGuid().ToString();
+            profile.Name = GetUniqueProfileName(string.IsNullOrWhiteSpace(profile.Name)
+                ? Path.GetFileNameWithoutExtension(filePath)
+                : profile.Name);
+            profile.Description = string.IsNullOrWhiteSpace(profile.Description)
+                ? $"Imported from {Path.GetFileName(filePath)}"
+                : profile.Description;
+
+            SaveProfile(profile);
+            return profile;
+        }
+
+        public void ExportProfileToFile(Models.Profile profile, string filePath)
+        {
+            if (profile == null)
+            {
+                throw new ArgumentNullException(nameof(profile));
+            }
+
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                throw new ArgumentException("Export file path is required.", nameof(filePath));
+            }
+
+            var directory = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            var json = JsonConvert.SerializeObject(profile, Formatting.Indented);
+            File.WriteAllText(filePath, json);
+        }
+
+        public void SetSharedProfilesFolder(string folderPath)
+        {
+            SharedProfilesFolder = folderPath ?? string.Empty;
+            var json = JsonConvert.SerializeObject(new ProfileManagerSettings { SharedProfilesFolder = SharedProfilesFolder }, Formatting.Indented);
+            File.WriteAllText(_settingsFile, json);
+            LoadProfiles();
         }
 
         public void DeleteProfile(Models.Profile profile)
@@ -195,6 +254,65 @@ MessageBoxButton.OK, MessageBoxImage.Warning);
 
             SaveProfile(defaultProfile);
             CurrentProfile = defaultProfile;
+        }
+
+        private void AddProfileFromFile(string file, bool isShared)
+        {
+            try
+            {
+                var json = File.ReadAllText(file);
+                var profile = JsonConvert.DeserializeObject<Models.Profile>(json);
+                if (profile == null)
+                {
+                    return;
+                }
+
+                if (isShared && Profiles.Any(p => p.Name.Equals(profile.Name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return;
+                }
+
+                Profiles.Add(profile);
+            }
+            catch
+            {
+            }
+        }
+
+        private string GetUniqueProfileName(string baseName)
+        {
+            var candidate = baseName;
+            var index = 2;
+            while (Profiles.Any(p => p.Name.Equals(candidate, StringComparison.OrdinalIgnoreCase)))
+            {
+                candidate = $"{baseName} ({index})";
+                index++;
+            }
+
+            return candidate;
+        }
+
+        private string LoadSharedProfilesFolder()
+        {
+            try
+            {
+                if (!File.Exists(_settingsFile))
+                {
+                    return string.Empty;
+                }
+
+                var settings = JsonConvert.DeserializeObject<ProfileManagerSettings>(File.ReadAllText(_settingsFile));
+                return settings?.SharedProfilesFolder ?? string.Empty;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private class ProfileManagerSettings
+        {
+            public string SharedProfilesFolder { get; set; } = string.Empty;
         }
 
         private void WriteDebugLog(string message)

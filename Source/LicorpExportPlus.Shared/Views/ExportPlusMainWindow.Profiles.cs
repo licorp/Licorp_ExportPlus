@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Collections.Generic;
@@ -6,6 +7,7 @@ using LicorpExportPlus.Models;
 using LicorpExportPlus.Utils;
 using LicorpExportPlus.Services;
 using LicorpExportPlus.Dialogs;
+using FolderBrowserDialog = System.Windows.Forms.FolderBrowserDialog;
 using Profile = LicorpExportPlus.Models.Profile;
 
 namespace LicorpExportPlus.Views
@@ -833,6 +835,162 @@ namespace LicorpExportPlus.Views
                 MessageBox.Show($"Error saving profile: {ex.Message}", "Error",
                                MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void ImportProfile_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Filter = "Profile files (*.json;*.xml)|*.json;*.xml|JSON profiles (*.json)|*.json|XML profiles (*.xml)|*.xml|All files (*.*)|*.*",
+                    Title = "Import Profile"
+                };
+
+                if (dialog.ShowDialog() != true)
+                {
+                    return;
+                }
+
+                Profile importedProfile;
+                var extension = Path.GetExtension(dialog.FileName).ToLowerInvariant();
+                if (extension == ".json")
+                {
+                    importedProfile = _profileManager.ImportProfileFromFile(dialog.FileName);
+                }
+                else if (extension == ".xml")
+                {
+                    importedProfile = ImportXmlProfile(dialog.FileName);
+                }
+                else
+                {
+                    MessageBox.Show("Please select a .json or .xml profile file.", "Unsupported Profile",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                _profileManager.SwitchProfile(importedProfile);
+                ProfileComboBox.ItemsSource = _profileManager.Profiles;
+                ProfileComboBox.SelectedItem = importedProfile;
+                ApplyProfileToUI(importedProfile);
+
+                MessageBox.Show($"Profile '{importedProfile.Name}' imported successfully.",
+                    "Profile Imported", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error importing profile: {ex.Message}", "Import Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ExportProfile_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var currentProfile = ProfileComboBox.SelectedItem as Profile;
+                if (currentProfile == null)
+                {
+                    MessageBox.Show("Please select a profile first.", "Information",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Filter = "Export+ profile (*.json)|*.json",
+                    FileName = $"{currentProfile.Name}.json",
+                    Title = "Export Profile"
+                };
+
+                if (dialog.ShowDialog() != true)
+                {
+                    return;
+                }
+
+                _profileManager.ExportProfileToFile(currentProfile, dialog.FileName);
+                MessageBox.Show($"Profile exported to:\n{dialog.FileName}", "Profile Exported",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error exporting profile: {ex.Message}", "Export Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SharedProfileFolder_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                using (var dialog = new FolderBrowserDialog())
+                {
+                    dialog.Description = "Select shared profile folder";
+                    dialog.SelectedPath = _profileManager.SharedProfilesFolder;
+                    if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
+                    {
+                        return;
+                    }
+
+                    _profileManager.SetSharedProfilesFolder(dialog.SelectedPath);
+                    ProfileComboBox.ItemsSource = _profileManager.Profiles;
+                    ProfileComboBox.SelectedItem = _profileManager.CurrentProfile;
+
+                    MessageBox.Show($"Shared profile folder set to:\n{dialog.SelectedPath}",
+                        "Shared Profiles", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error setting shared profile folder: {ex.Message}", "Shared Profile Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private Profile ImportXmlProfile(string filePath)
+        {
+            var xmlProfile = XMLProfileService.LoadProfileFromXML(filePath);
+            if (xmlProfile == null || xmlProfile.TemplateInfo == null)
+            {
+                throw new InvalidOperationException("Could not read XML profile.");
+            }
+
+            var name = Path.GetFileNameWithoutExtension(filePath);
+            var profile = _profileManager.CreateNewProfile(name);
+            if (profile == null)
+            {
+                profile = _profileManager.CreateNewProfile($"{name} ({DateTime.Now:HHmmss})");
+            }
+
+            if (profile == null)
+            {
+                throw new InvalidOperationException("Could not create imported profile.");
+            }
+
+            var template = xmlProfile.TemplateInfo;
+            profile.XmlFilePath = filePath;
+            profile.Settings.PDFEnabled = template.IsPDFChecked;
+            profile.Settings.DWGEnabled = template.IsDWGChecked;
+            profile.Settings.DGNEnabled = template.IsDGNChecked;
+            profile.Settings.IFCEnabled = template.IsIFCChecked;
+            profile.Settings.IMGEnabled = template.IsIMGChecked;
+            profile.Settings.CompactDwgFiles = template.DWG_MergedViews;
+            profile.Settings.HideCropBoundaries = template.HideCropBoundaries;
+            profile.Settings.HideScopeBoxes = template.HideScopeBox;
+            profile.Settings.SaveAllInSameFolder = !template.IsSeparateFile;
+            profile.Settings.OutputFolder = string.IsNullOrWhiteSpace(template.FilePath)
+                ? profile.Settings.OutputFolder
+                : template.FilePath;
+            profile.Settings.PDFVectorProcessing = template.IsVectorProcessing;
+            profile.Settings.PDFRasterQuality = template.RasterQuality;
+            profile.Settings.PDFColorMode = template.Color;
+            profile.Settings.PDFFitToPage = template.IsFitToPage;
+            profile.Settings.PDFIsCenter = template.IsCenter;
+            profile.Settings.PDFMarginType = template.SelectedMarginType;
+
+            ConvertAndSaveXMLParametersToProfile(xmlProfile, profile);
+            _profileManager.SaveProfile(profile);
+            return profile;
         }
 
         /// <summary>

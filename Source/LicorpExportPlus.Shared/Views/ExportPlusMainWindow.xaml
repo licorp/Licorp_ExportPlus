@@ -250,6 +250,30 @@
                                     <TextBlock Text="💾" FontSize="16" 
                                                VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                 </Button>
+                                <Button x:Name="ImportProfileButton" Width="32" Height="32" Margin="0,0,5,0"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        ToolTip="Import profile JSON or XML"
+                                        Click="ImportProfile_Click"
+                                        Padding="0">
+                                    <TextBlock Text="In" FontSize="11" FontWeight="SemiBold"
+                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                </Button>
+                                <Button x:Name="ExportProfileButton" Width="32" Height="32" Margin="0,0,5,0"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        ToolTip="Export selected profile JSON"
+                                        Click="ExportProfile_Click"
+                                        Padding="0">
+                                    <TextBlock Text="Out" FontSize="10" FontWeight="SemiBold"
+                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                </Button>
+                                <Button x:Name="SharedProfileFolderButton" Width="32" Height="32" Margin="0,0,5,0"
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        ToolTip="Select shared profile folder"
+                                        Click="SharedProfileFolder_Click"
+                                        Padding="0">
+                                    <TextBlock Text="Net" FontSize="10" FontWeight="SemiBold"
+                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                </Button>
                                 <Button x:Name="DeleteProfileButton" Width="32" Height="32"
                                         Style="{StaticResource SecondaryButtonStyle}"
                                         ToolTip="Delete selected profile"
@@ -1870,6 +1894,7 @@
                                 <TextBlock Text="Folder Selection:" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="13"/>
                                 <TextBox x:Name="CreateFolderPathTextBox" Width="520" Height="35" 
                                          Text="{Binding OutputFolder, UpdateSourceTrigger=PropertyChanged}"
+                                         TextChanged="CreateFolderPathTextBox_TextChanged"
                                          VerticalContentAlignment="Center" FontSize="13" VerticalAlignment="Center"/>
                                 <Button x:Name="CreateBrowseFolderButton" Content="📁" Width="45" Height="35" FontSize="14"
                                         utils:BrowseFileBehavior.TargetTextBoxName="CreateFolderPathTextBox"
@@ -1931,11 +1956,28 @@
                                           Margin="0,0,0,10"
                                           FontSize="13">
                                     <ComboBoxItem Content="Don't Save Report" IsSelected="True"/>
-                                    <ComboBoxItem Content="Save CSV Report"/>
+                                    <ComboBoxItem Content="CSV"/>
+                                    <ComboBoxItem Content="XLSX"/>
+                                    <ComboBoxItem Content="CSV + XLSX"/>
                                 </ComboBox>
                             </StackPanel>
                         </Grid>
                     </GroupBox>
+
+                    <Border Grid.Row="0"
+                            Margin="0,92,0,0"
+                            Padding="8,4"
+                            Background="#F8FBFF"
+                            BorderBrush="#D6E8FA"
+                            BorderThickness="1"
+                            CornerRadius="3"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Bottom">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Filename preview:" FontWeight="SemiBold" FontSize="12" Margin="0,0,8,0"/>
+                            <TextBlock Text="{Binding FilenamePreviewText}" FontFamily="Consolas" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                    </Border>
 
                     <!-- Export Queue DataGrid -->
                     <GroupBox Grid.Row="1" Header="Export Queue" Margin="0,0,0,15"
@@ -1996,6 +2038,7 @@
                                       SelectionMode="Extended"
                                       BorderThickness="1"
                                       BorderBrush="#E1E1E1"
+                                      SelectionChanged="ExportQueueDataGrid_SelectionChanged"
                                       ItemsSource="{Binding ExportQueueItems}">
                                 <DataGrid.ContextMenu>
                                     <ContextMenu>

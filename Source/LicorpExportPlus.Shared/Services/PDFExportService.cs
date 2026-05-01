@@ -6,6 +6,7 @@ using Autodesk.Revit.DB;
 using Licorp.Diagnostics;
 using LicorpExportPlus.Helpers;
 using LicorpExportPlus.Models;
+using LicorpExportPlus.Utils;
 
 namespace LicorpExportPlus.Services
 {
@@ -574,36 +575,10 @@ namespace LicorpExportPlus.Services
                 return null;
             }
 
-            var parts = parameterConfig.Select(paramInfo =>
-                {
-                    string value = GetParameterValue(sheet, paramInfo.ParameterName);
-                    if (string.IsNullOrEmpty(value))
-                    {
-                        value = paramInfo.ParameterName;
-                    }
-
-                    var part = $"{paramInfo.Prefix}{value}{paramInfo.Suffix}";
-                    return string.IsNullOrEmpty(part) ? null : new { Part = part, Separator = paramInfo.Separator ?? "" };
-                })
-                .Where(part => part != null)
-                .ToList();
-
-            if (parts.Count == 0)
-            {
-                return null;
-            }
-
-            var fileName = "";
-            for (int i = 0; i < parts.Count; i++)
-            {
-                fileName += parts[i].Part;
-                if (i < parts.Count - 1)
-                {
-                    fileName += parts[i].Separator;
-                }
-            }
-
-            return SanitizeFileName(fileName);
+            return FileNameGenerator.BuildNameFromParameters(
+                parameterConfig,
+                parameterName => GetParameterValue(sheet, parameterName),
+                sanitize: true);
         }
 
         private string GetParameterValue(ViewSheet sheet, string parameterName)

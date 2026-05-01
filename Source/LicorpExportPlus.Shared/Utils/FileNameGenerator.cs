@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Autodesk.Revit.DB;
 using LicorpExportPlus.Models;
@@ -87,7 +88,9 @@ namespace LicorpExportPlus.Utils
                 .Replace("%DrawingName%", drawingName ?? string.Empty)
                 .Replace("%IssueDate%", date.ToString("yyyy-MM-dd"))
                 .Replace("%YYYY%", date.ToString("yyyy"))
+                .Replace("%Y%", date.ToString("yyyy"))
                 .Replace("%YY%", date.ToString("yy"))
+                .Replace("%y%", date.ToString("yy"))
                 .Replace("%mm%", date.ToString("MM"))
                 .Replace("%m%", date.Month.ToString())
                 .Replace("%dd%", date.ToString("dd"))
@@ -100,6 +103,47 @@ namespace LicorpExportPlus.Utils
                 .Replace("%S%", date.Second.ToString());
 
             return sanitize ? SanitizeFileName(resolved) : resolved;
+        }
+
+        public static string BuildNameFromParameters(System.Collections.Generic.IEnumerable<SelectedParameterInfo> parameters, System.Func<string, string> valueResolver, bool sanitize = true)
+        {
+            if (parameters == null)
+            {
+                return string.Empty;
+            }
+
+            var parts = parameters
+                .Select(paramInfo =>
+                {
+                    var value = paramInfo.IsStaticText
+                        ? paramInfo.SampleValue
+                        : valueResolver?.Invoke(paramInfo.ParameterName);
+
+                    if (string.IsNullOrEmpty(value) && !paramInfo.IsStaticText)
+                    {
+                        value = paramInfo.SampleValue;
+                    }
+
+                    value = ResolveEnvironmentVariables(value ?? string.Empty, string.Empty, System.DateTime.Now, sanitize: false);
+
+                    var part = $"{paramInfo.Prefix}{value}{paramInfo.Suffix}";
+                    return string.IsNullOrEmpty(part) ? null : new { Part = part, Separator = paramInfo.Separator ?? string.Empty };
+                })
+                .Where(part => part != null)
+                .ToList();
+
+            var result = string.Empty;
+            for (int i = 0; i < parts.Count; i++)
+            {
+                result += parts[i].Part;
+                if (i < parts.Count - 1)
+                {
+                    result += parts[i].Separator;
+                }
+            }
+
+            result = ResolveEnvironmentVariables(result, string.Empty, System.DateTime.Now, sanitize: false);
+            return sanitize ? SanitizeFileName(result) : result;
         }
 
         private static bool IsStandardPlaceholder(string placeholder)

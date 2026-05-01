@@ -58,6 +58,7 @@ namespace LicorpExportPlus.Models
         private string _suffix;
         private string _separator;
         private string _sampleValue;
+        private bool _isStaticText;
 
         public string ParameterName
         {
@@ -87,6 +88,12 @@ namespace LicorpExportPlus.Models
         {
             get => _sampleValue;
             set { _sampleValue = value; OnPropertyChanged(); UpdatePreview(); }
+        }
+
+        public bool IsStaticText
+        {
+            get => _isStaticText;
+            set { _isStaticText = value; OnPropertyChanged(); UpdatePreview(); }
         }
 
         // Event to notify when preview needs updating

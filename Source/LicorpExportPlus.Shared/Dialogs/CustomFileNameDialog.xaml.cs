@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using LicorpExportPlus.Models;
 using Licorp.Diagnostics;
+using LicorpExportPlus.Utils;
 using Autodesk.Revit.DB;
 
 namespace LicorpExportPlus.Dialogs
@@ -133,7 +134,17 @@ namespace LicorpExportPlus.Dialogs
                     // IFC Parameters
                     new ParameterInfo { Name = "IfcBuilding GUID", Type = "Text", Category = "IFC Parameters", IsBuiltIn = false },
                     new ParameterInfo { Name = "IfcProject GUID", Type = "Text", Category = "IFC Parameters", IsBuiltIn = false },
-                    new ParameterInfo { Name = "IfcSite GUID", Type = "Text", Category = "IFC Parameters", IsBuiltIn = false }
+                    new ParameterInfo { Name = "IfcSite GUID", Type = "Text", Category = "IFC Parameters", IsBuiltIn = false },
+
+                    // Non-Revit values
+                    new ParameterInfo { Name = "%UserName%", Type = "Text", Category = "Environment", IsBuiltIn = false },
+                    new ParameterInfo { Name = "%ComputerName%", Type = "Text", Category = "Environment", IsBuiltIn = false },
+                    new ParameterInfo { Name = "%Y%", Type = "Text", Category = "Date/Time", IsBuiltIn = false },
+                    new ParameterInfo { Name = "%m%", Type = "Text", Category = "Date/Time", IsBuiltIn = false },
+                    new ParameterInfo { Name = "%d%", Type = "Text", Category = "Date/Time", IsBuiltIn = false },
+                    new ParameterInfo { Name = "%H%", Type = "Text", Category = "Date/Time", IsBuiltIn = false },
+                    new ParameterInfo { Name = "%M%", Type = "Text", Category = "Date/Time", IsBuiltIn = false },
+                    new ParameterInfo { Name = "%S%", Type = "Text", Category = "Date/Time", IsBuiltIn = false }
                 };
 
                 foreach (var param in commonParams.OrderBy(p => p.Name))
@@ -341,7 +352,8 @@ namespace LicorpExportPlus.Dialogs
                     Prefix = param.Prefix ?? "",
                     Suffix = param.Suffix ?? "",
                     Separator = param.Separator ?? "-",
-                    SampleValue = param.SampleValue ?? ""
+                    SampleValue = param.SampleValue ?? "",
+                    IsStaticText = param.IsStaticText
                 };
                 
                 paramCopy.PreviewChanged += UpdatePreview;
@@ -388,32 +400,10 @@ namespace LicorpExportPlus.Dialogs
 
         private static string BuildCombinedNamePreview(IList<SelectedParameterInfo> parameters)
         {
-            var parts = parameters
-                .Select(p =>
-                {
-                    string value = string.IsNullOrEmpty(p.SampleValue) ? p.ParameterName : p.SampleValue;
-                    string part = $"{p.Prefix}{value}{p.Suffix}";
-                    return string.IsNullOrEmpty(part) ? null : new { Part = part, Separator = p.Separator ?? "" };
-                })
-                .Where(p => p != null)
-                .ToList();
-
-            if (parts.Count == 0)
-            {
-                return string.Empty;
-            }
-
-            var result = "";
-            for (int i = 0; i < parts.Count; i++)
-            {
-                result += parts[i].Part;
-                if (i < parts.Count - 1)
-                {
-                    result += parts[i].Separator;
-                }
-            }
-
-            return result;
+            return FileNameGenerator.BuildNameFromParameters(
+                parameters,
+                parameterName => parameters.FirstOrDefault(p => p.ParameterName == parameterName)?.SampleValue ?? parameterName,
+                sanitize: false);
         }
 
         /// <summary>
@@ -432,6 +422,14 @@ namespace LicorpExportPlus.Dialogs
                 case "Drawn By": return "JDoe";
                 case "Checked By": return "JSmith";
                 case "Sheet Issue Date": return "2025-10-02";
+                case "%UserName%": return Environment.UserName;
+                case "%ComputerName%": return Environment.MachineName;
+                case "%Y%": return DateTime.Now.ToString("yyyy");
+                case "%m%": return DateTime.Now.Month.ToString();
+                case "%d%": return DateTime.Now.Day.ToString();
+                case "%H%": return DateTime.Now.Hour.ToString();
+                case "%M%": return DateTime.Now.Minute.ToString();
+                case "%S%": return DateTime.Now.Second.ToString();
                 default: return parameterName;
             }
         }
@@ -466,13 +464,32 @@ namespace LicorpExportPlus.Dialogs
                     Prefix = "",
                     Suffix = "",
                     Separator = "-",
-                    SampleValue = GetSampleValue(SelectedAvailableParameter.Name)
+                    SampleValue = GetSampleValue(SelectedAvailableParameter.Name),
+                    IsStaticText = false
                 };
 
                 selectedParam.PreviewChanged += UpdatePreview;
                 _selectedParameters.Add(selectedParam);
                 UpdatePreview();
             }
+        }
+
+        private void AddStaticText_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedParam = new SelectedParameterInfo
+            {
+                ParameterName = "Static Text",
+                Prefix = "",
+                Suffix = "",
+                Separator = "-",
+                SampleValue = "TEXT",
+                IsStaticText = true
+            };
+
+            selectedParam.PreviewChanged += UpdatePreview;
+            _selectedParameters.Add(selectedParam);
+            ParametersDataGrid.SelectedItem = selectedParam;
+            UpdatePreview();
         }
 
         private void RemoveParameter_Click(object sender, RoutedEventArgs e)
