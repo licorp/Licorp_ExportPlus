@@ -35,6 +35,7 @@ namespace LicorpExportPlus.Services
                     using (var trans = new Transaction(_document, "Apply PDF View Options"))
                     {
                         trans.Start();
+                        RevitFailurePreprocessor.ApplyTo(trans);
 
                         foreach (var sheetItem in sheetItems)
                         {
@@ -410,8 +411,9 @@ namespace LicorpExportPlus.Services
 
                 return fileName.Length > 200 ? fileName.Substring(0, 200) : fileName;
             }
-            catch
+            catch (Exception ex)
             {
+                LicorpTrace.Warn($"PDF file name generation failed for sheet {sheet?.SheetNumber}: {ex.Message}");
                 return SanitizeFileName($"{sheet.SheetNumber}_{sheet.Name}");
             }
         }
@@ -422,8 +424,9 @@ namespace LicorpExportPlus.Services
             {
                 return element.get_Parameter(paramName)?.AsString() ?? "";
             }
-            catch
+            catch (Exception ex)
             {
+                LicorpTrace.Warn($"Could not read parameter {paramName}: {ex.Message}");
                 return "";
             }
         }
@@ -441,40 +444,16 @@ namespace LicorpExportPlus.Services
                 revParam = sheet.get_Parameter(BuiltInParameter.SHEET_CURRENT_REVISION_DATE);
                 return revParam?.AsString() ?? "";
             }
-            catch
+            catch (Exception ex)
             {
+                LicorpTrace.Warn($"Could not read sheet revision for {sheet?.SheetNumber}: {ex.Message}");
                 return "";
             }
         }
 
         private string SanitizeFileName(string fileName)
         {
-            if (string.IsNullOrEmpty(fileName))
-            {
-                return "Unknown";
-            }
-
-            try
-            {
-                foreach (char c in Path.GetInvalidFileNameChars())
-                {
-                    fileName = fileName.Replace(c, '_');
-                }
-
-                fileName = fileName.Replace(' ', '_').Replace('.', '_').Replace(',', '_').Replace(';', '_').Replace(':', '_');
-
-                while (fileName.Contains("__"))
-                {
-                    fileName = fileName.Replace("__", "_");
-                }
-
-                fileName = fileName.Trim('_');
-                return string.IsNullOrEmpty(fileName) ? "Unknown" : fileName;
-            }
-            catch
-            {
-                return "Unknown";
-            }
+            return FileNameHelper.SanitizeFileName(fileName);
         }
 
         public List<View> CollectPrintableViewsByType(PSPDFExportSettings settings)
@@ -503,8 +482,9 @@ namespace LicorpExportPlus.Services
 
                 return filteredViews;
             }
-            catch
+            catch (Exception ex)
             {
+                LicorpTrace.Warn($"CollectPrintableViewsByType failed: {ex.Message}");
                 return new List<View>();
             }
         }
@@ -631,8 +611,9 @@ namespace LicorpExportPlus.Services
 
                 return "";
             }
-            catch
+            catch (Exception ex)
             {
+                LicorpTrace.Warn($"Could not resolve parameter '{parameterName}' for sheet {sheet?.SheetNumber}: {ex.Message}");
                 return "";
             }
         }
@@ -646,8 +627,9 @@ namespace LicorpExportPlus.Services
                     .Cast<Viewport>()
                     .Any();
             }
-            catch
+            catch (Exception ex)
             {
+                LicorpTrace.Warn($"Could not check whether sheet {sheet?.SheetNumber} is empty: {ex.Message}");
                 return false;
             }
         }

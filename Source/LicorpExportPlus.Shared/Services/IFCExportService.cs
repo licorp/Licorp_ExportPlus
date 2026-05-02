@@ -5,6 +5,7 @@ using System.Linq;
 using System.Xml.Linq;
 using LicorpExportPlus.Models;
 using Licorp.Diagnostics;
+using LicorpExportPlus.Helpers;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.IFC;
 using Autodesk.Revit.DB.ExtensibleStorage;
@@ -36,50 +37,21 @@ namespace LicorpExportPlus.Services
                     logCallback?.Invoke($"Created output directory: {outputPath}");
                 }
 
-                using (Transaction trans = new Transaction(_document, "Export IFC"))
+                foreach (var sheet in sheets)
                 {
-                    trans.Start();
+                    string fileName = SanitizeFileName(sheet.SheetNumber + "_" + sheet.Name);
+                    logCallback?.Invoke($"Exporting sheet: {sheet.SheetNumber} - {sheet.Name}");
 
-                    try
-                    {
-                        foreach (var sheet in sheets)
-                        {
-                            string fileName = SanitizeFileName(sheet.SheetNumber + "_" + sheet.Name);
+                    string fullPath = Path.Combine(outputPath, fileName + ".ifc");
+                    bool success = ExportSingleSheet(sheet, fullPath, ifcOptions, logCallback);
 
-                            logCallback?.Invoke($"Exporting sheet: {sheet.SheetNumber} - {sheet.Name}");
-
-                            string fullPath = Path.Combine(outputPath, fileName + ".ifc");
-
-                            using (Transaction t = new Transaction(_document, "IFC Export"))
-                            {
-                                t.Start();
-
-                                bool success = ExportSingleSheet(sheet, fullPath, ifcOptions, logCallback);
-
-                                if (success)
-                                {
-                                    logCallback?.Invoke($"✓ Exported: {fileName}.ifc");
-                                }
-                                else
-                                {
-                                    logCallback?.Invoke($"✗ Failed to export: {fileName}");
-                                }
-
-                                t.RollBack();
-                            }
-                        }
-
-                        trans.RollBack();
-                        logCallback?.Invoke($"IFC export completed: {sheets.Count} sheets processed");
-                        return true;
-                    }
-                    catch (Exception ex)
-                    {
-                        trans.RollBack();
-                        logCallback?.Invoke($"ERROR during export: {ex.Message}");
-                        throw;
-                    }
+                    logCallback?.Invoke(success
+                        ? $"Exported: {fileName}.ifc"
+                        : $"Failed to export: {fileName}");
                 }
+
+                logCallback?.Invoke($"IFC export completed: {sheets.Count} sheets processed");
+                return true;
             }
             catch (Exception ex)
             {
@@ -147,6 +119,7 @@ namespace LicorpExportPlus.Services
                         catch (Exception ex)
                         {
                             logCallback?.Invoke($"⚠ Warning: Could not set property sets file: {ex.Message}");
+                            LicorpTrace.Warn($"IFC option ExportUserDefinedPsets failed: {ex.Message}");
                         }
                     }
                     else
@@ -177,6 +150,7 @@ namespace LicorpExportPlus.Services
                         catch (Exception ex)
                         {
                             logCallback?.Invoke($"⚠ Warning: Could not set parameter mapping: {ex.Message}");
+                            LicorpTrace.Warn($"IFC option ExportUserDefinedParameterMapping failed: {ex.Message}");
                         }
                     }
                     else
@@ -192,7 +166,11 @@ namespace LicorpExportPlus.Services
                         options.AddOption("VisibleElementsOfCurrentView", "true");
                         logCallback?.Invoke($"✓ Visible Elements Only: ENABLED");
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        logCallback?.Invoke($"Warning: IFC option could not be applied: {ex.Message}");
+                        LicorpTrace.Warn($"IFC option failed: {ex.Message}");
+                    }
                 }
 
                 if (settings.UseActiveViewGeometry)
@@ -202,7 +180,11 @@ namespace LicorpExportPlus.Services
                         options.AddOption("UseActiveViewGeometry", "true");
                         logCallback?.Invoke($"✓ Use Active View Geometry: ENABLED");
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        logCallback?.Invoke($"Warning: IFC option could not be applied: {ex.Message}");
+                        LicorpTrace.Warn($"IFC option failed: {ex.Message}");
+                    }
                 }
 
                 try
@@ -210,14 +192,22 @@ namespace LicorpExportPlus.Services
                     options.WallAndColumnSplitting = settings.SplitWallsByLevel;
                     logCallback?.Invoke($"✓ Split Walls/Columns by Level: {settings.SplitWallsByLevel}");
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    logCallback?.Invoke($"Warning: IFC option could not be applied: {ex.Message}");
+                    LicorpTrace.Warn($"IFC option failed: {ex.Message}");
+                }
 
                 try
                 {
                     options.AddOption("ExportLinkedFiles", settings.ExportLinkedFiles.ToString());
                     logCallback?.Invoke($"✓ Export Linked Files: {settings.ExportLinkedFiles}");
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    logCallback?.Invoke($"Warning: IFC option could not be applied: {ex.Message}");
+                    LicorpTrace.Warn($"IFC option failed: {ex.Message}");
+                }
 
                 try
                 {
@@ -227,7 +217,11 @@ namespace LicorpExportPlus.Services
                         logCallback?.Invoke($"✓ Store IFC GUID: ENABLED (GUIDs will be saved to Revit model)");
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    logCallback?.Invoke($"Warning: IFC option could not be applied: {ex.Message}");
+                    LicorpTrace.Warn($"IFC option failed: {ex.Message}");
+                }
 
                 logCallback?.Invoke("=== IFC Export Options Applied Successfully ===");
             }
@@ -281,17 +275,7 @@ namespace LicorpExportPlus.Services
 
         private string SanitizeFileName(string fileName)
         {
-            char[] invalidChars = Path.GetInvalidFileNameChars();
-            foreach (char c in invalidChars)
-            {
-                fileName = fileName.Replace(c, '_');
-            }
-
-            fileName = fileName.Replace(':', '-');
-            fileName = fileName.Replace('/', '-');
-            fileName = fileName.Replace('\\', '-');
-
-            return fileName;
+            return FileNameHelper.SanitizeFileName(fileName);
         }
 
         public List<View3D> Get3DViews()
@@ -324,6 +308,7 @@ namespace LicorpExportPlus.Services
                 using (Transaction trans = new Transaction(_document, "Export IFC"))
                 {
                     trans.Start();
+                    RevitFailurePreprocessor.ApplyTo(trans);
 
                     try
                     {

@@ -17,19 +17,19 @@ namespace LicorpExportPlus.Services
             {
                 if (!File.Exists(mainDwgPath))
                 {
-                    Debug.WriteLine($"[DWG Cleanup] File not found: {mainDwgPath}");
+                    Licorp.Diagnostics.LicorpTrace.Dbg($"[DWG Cleanup] File not found: {mainDwgPath}");
                     return;
                 }
 
-                Debug.WriteLine("[DWG Cleanup] ========================================");
-                Debug.WriteLine($"[DWG Cleanup] Starting cleanup for: {Path.GetFileName(mainDwgPath)}");
+                Licorp.Diagnostics.LicorpTrace.Dbg("[DWG Cleanup] ========================================");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[DWG Cleanup] Starting cleanup for: {Path.GetFileName(mainDwgPath)}");
 
                 var directory = Path.GetDirectoryName(mainDwgPath);
                 var mainFileName = Path.GetFileNameWithoutExtension(mainDwgPath);
 
                 if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(mainFileName))
                 {
-                    Debug.WriteLine("[DWG Cleanup] Invalid DWG path.");
+                    Licorp.Diagnostics.LicorpTrace.Dbg("[DWG Cleanup] Invalid DWG path.");
                     return;
                 }
 
@@ -38,11 +38,11 @@ namespace LicorpExportPlus.Services
                     .OrderBy(f => new FileInfo(f).Length)
                     .ToList();
 
-                Debug.WriteLine($"[DWG Cleanup] Found {allDwgFiles.Count} related DWG files");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[DWG Cleanup] Found {allDwgFiles.Count} related DWG files");
 
                 if (allDwgFiles.Count <= 1)
                 {
-                    Debug.WriteLine("[DWG Cleanup] Only 1 file found - no cleanup needed");
+                    Licorp.Diagnostics.LicorpTrace.Dbg("[DWG Cleanup] Only 1 file found - no cleanup needed");
                     return;
                 }
 
@@ -50,14 +50,14 @@ namespace LicorpExportPlus.Services
                     Path.GetFileNameWithoutExtension(f).Equals(mainFileName, StringComparison.OrdinalIgnoreCase))
                     ?? allDwgFiles[0];
 
-                Debug.WriteLine($"[DWG Cleanup] Main file identified: {Path.GetFileName(realMainFile)}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[DWG Cleanup] Main file identified: {Path.GetFileName(realMainFile)}");
 
                 var deletedCount = 0;
                 foreach (var file in allDwgFiles)
                 {
                     if (file.Equals(realMainFile, StringComparison.OrdinalIgnoreCase))
                     {
-                        Debug.WriteLine($"[DWG Cleanup] KEEP: {Path.GetFileName(file)} (main file)");
+                        Licorp.Diagnostics.LicorpTrace.Dbg($"[DWG Cleanup] KEEP: {Path.GetFileName(file)} (main file)");
                         continue;
                     }
 
@@ -65,22 +65,22 @@ namespace LicorpExportPlus.Services
                     {
                         File.Delete(file);
                         deletedCount++;
-                        Debug.WriteLine($"[DWG Cleanup] DELETED: {Path.GetFileName(file)}");
+                        Licorp.Diagnostics.LicorpTrace.Dbg($"[DWG Cleanup] DELETED: {Path.GetFileName(file)}");
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"[DWG Cleanup] Could not delete {Path.GetFileName(file)}: {ex.Message}");
+                        Licorp.Diagnostics.LicorpTrace.Dbg($"[DWG Cleanup] Could not delete {Path.GetFileName(file)}: {ex.Message}");
                     }
                 }
 
-                Debug.WriteLine("[DWG Cleanup] ========================================");
-                Debug.WriteLine($"[DWG Cleanup] Cleanup completed: Deleted {deletedCount} companion DWG files");
-                Debug.WriteLine("[DWG Cleanup] NOTE: Cleanup does not bind XREF references inside the main DWG.");
-                Debug.WriteLine("[DWG Cleanup] ========================================");
+                Licorp.Diagnostics.LicorpTrace.Dbg("[DWG Cleanup] ========================================");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[DWG Cleanup] Cleanup completed: Deleted {deletedCount} companion DWG files");
+                Licorp.Diagnostics.LicorpTrace.Dbg("[DWG Cleanup] NOTE: Cleanup does not bind XREF references inside the main DWG.");
+                Licorp.Diagnostics.LicorpTrace.Dbg("[DWG Cleanup] ========================================");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[DWG Cleanup] ERROR: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[DWG Cleanup] ERROR: {ex.Message}");
             }
         }
 
@@ -90,8 +90,8 @@ namespace LicorpExportPlus.Services
         /// </summary>
         public static bool RemoveXRefReferences(string dwgPath)
         {
-            Debug.WriteLine($"[DWG Cleanup] XREF reference removal skipped for: {dwgPath}");
-            Debug.WriteLine("[DWG Cleanup] Use compact DWG export (MergedViews = true) or AutoCAD bind for reliable self-contained DWG output.");
+            Licorp.Diagnostics.LicorpTrace.Dbg($"[DWG Cleanup] XREF reference removal skipped for: {dwgPath}");
+            Licorp.Diagnostics.LicorpTrace.Dbg("[DWG Cleanup] Use compact DWG export (MergedViews = true) or AutoCAD bind for reliable self-contained DWG output.");
             return false;
         }
 

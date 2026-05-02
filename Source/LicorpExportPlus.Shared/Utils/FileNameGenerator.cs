@@ -2,6 +2,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Autodesk.Revit.DB;
+using LicorpExportPlus.Helpers;
 using LicorpExportPlus.Models;
 
 namespace LicorpExportPlus.Utils
@@ -161,22 +162,7 @@ namespace LicorpExportPlus.Utils
 
         public static string SanitizeFileName(string fileName)
         {
-            char[] invalidChars = Path.GetInvalidFileNameChars();
-            foreach (char c in invalidChars)
-            {
-                fileName = fileName.Replace(c, '_');
-            }
-
-            fileName = fileName.Replace(":", "_");
-            fileName = fileName.Replace(";", "_");
-            fileName = fileName.Replace(",", "_");
-            fileName = fileName.Replace(" ", "_");
-
-            // Normalize repeated separators after all substitutions have been applied.
-            fileName = Regex.Replace(fileName, "_+", "_");
-            fileName = fileName.Trim('_');
-
-            return fileName;
+            return FileNameHelper.SanitizeFileName(fileName);
         }
 
         public static string GenerateSubfolderPath(ViewSheet sheet, Document doc, PSExportSettings settings)

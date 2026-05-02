@@ -92,6 +92,7 @@ namespace LicorpExportPlus.Services
                     using (Transaction trans = new Transaction(_document, "Configure Print ViewSet"))
                     {
                         trans.Start();
+                        RevitFailurePreprocessor.ApplyTo(trans);
 
                         ViewSheetSetting vss = pm.ViewSheetSetting;
 
@@ -107,6 +108,7 @@ namespace LicorpExportPlus.Services
                 }
                 catch (Exception ex)
                 {
+                    LicorpTrace.Warn($"Configure Print ViewSet failed, falling back to current print range: {ex.Message}");
                     pm.PrintRange = PrintRange.Current;
                     pm.PrintToFile = true;
                     pm.CombinedFile = true;
@@ -125,12 +127,14 @@ namespace LicorpExportPlus.Services
                     using (Transaction trans = new Transaction(_document, "Apply View Options"))
                     {
                         trans.Start();
+                        RevitFailurePreprocessor.ApplyTo(trans);
                         PDFOptionsApplier.ApplyViewOptionsToSheetNoTransaction(_document, sheet, settings);
                         trans.Commit();
                     }
                 }
                 catch (Exception ex)
                 {
+                    LicorpTrace.Warn($"Legacy PDF Apply View Options failed for {sheet.SheetNumber}: {ex.Message}");
                 }
 
                 try
@@ -139,6 +143,7 @@ namespace LicorpExportPlus.Services
                 }
                 catch (Exception ex)
                 {
+                    LicorpTrace.Warn($"Legacy PDF PrintManager settings failed for {sheet.SheetNumber}: {ex.Message}");
                 }
 
                 try
@@ -147,6 +152,7 @@ namespace LicorpExportPlus.Services
                 }
                 catch (Exception ex)
                 {
+                    LicorpTrace.Warn($"Legacy PDF PrintManager apply failed for {sheet.SheetNumber}: {ex.Message}");
                     return false;
                 }
 
@@ -160,6 +166,7 @@ namespace LicorpExportPlus.Services
                     }
                     catch (Exception ex)
                     {
+                        LicorpTrace.Warn($"Could not delete existing PDF '{outputPath}': {ex.Message}");
                     }
                 }
 
@@ -181,6 +188,7 @@ namespace LicorpExportPlus.Services
             }
             catch (Exception ex)
             {
+                LicorpTrace.Error($"Legacy PDF export failed for {sheet.SheetNumber}", ex);
                 return false;
             }
         }

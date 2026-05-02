@@ -691,7 +691,7 @@ namespace LicorpExportPlus.Views
                                         // Format checkboxes
                                         newProfile.Settings.PDFEnabled = template.IsPDFChecked;
                                         newProfile.Settings.DWGEnabled = template.IsDWGChecked;
-                                        newProfile.Settings.DGNEnabled = template.IsDGNChecked;
+                                        newProfile.Settings.DGNEnabled = false;
                                         newProfile.Settings.IFCEnabled = template.IsIFCChecked;
                                         newProfile.Settings.IMGEnabled = template.IsIMGChecked;
                                         newProfile.Settings.CompactDwgFiles = template.DWG_MergedViews;
@@ -971,7 +971,7 @@ namespace LicorpExportPlus.Views
             profile.XmlFilePath = filePath;
             profile.Settings.PDFEnabled = template.IsPDFChecked;
             profile.Settings.DWGEnabled = template.IsDWGChecked;
-            profile.Settings.DGNEnabled = template.IsDGNChecked;
+            profile.Settings.DGNEnabled = false;
             profile.Settings.IFCEnabled = template.IsIFCChecked;
             profile.Settings.IMGEnabled = template.IsIMGChecked;
             profile.Settings.CompactDwgFiles = template.DWG_MergedViews;

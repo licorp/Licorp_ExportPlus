@@ -74,9 +74,12 @@ namespace LicorpExportPlus.Events
             {
                 string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
                 string fullMessage = $"[Export +] {timestamp} - {message}";
-                System.Diagnostics.Debug.WriteLine(fullMessage);
+                LicorpTrace.Dbg(fullMessage);
             }
-            catch { }
+            catch
+            {
+                // Logging must never break export.
+            }
         }
     }
 }

@@ -353,7 +353,10 @@ namespace LicorpExportPlus.Views
                     return param.AsString() ?? "";
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                LicorpTrace.Warn($"Could not read parameter '{paramName}': {ex.Message}");
+            }
             return "";
         }
         

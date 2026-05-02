@@ -238,32 +238,32 @@ namespace LicorpExportPlus.Models
         {
             if (IsFullyLoaded)
             {
-                System.Diagnostics.Debug.WriteLine($"👁️ [LoadFullDetails] SKIPPED - Already loaded for {ViewName}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"👁️ [LoadFullDetails] SKIPPED - Already loaded for {ViewName}");
                 return;
             }
 
-            System.Diagnostics.Debug.WriteLine($"👁️ [LoadFullDetails] LOADING for {ViewName}...");
+            Licorp.Diagnostics.LicorpTrace.Dbg($"👁️ [LoadFullDetails] LOADING for {ViewName}...");
 
             try
             {
                 // 🆕 CRITICAL: Get View from Document if RevitView is null (lazy load optimization)
                 if (RevitView == null && RevitViewId != null && document != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"👁️ [LoadFullDetails] Getting View from Document (ID={RevitViewId})...");
+                    Licorp.Diagnostics.LicorpTrace.Dbg($"👁️ [LoadFullDetails] Getting View from Document (ID={RevitViewId})...");
                     RevitView = document.GetElement(RevitViewId) as Autodesk.Revit.DB.View;
 
                     if (RevitView == null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"👁️ [LoadFullDetails] ❌ ERROR: Could not get View from Document");
+                        Licorp.Diagnostics.LicorpTrace.Dbg($"👁️ [LoadFullDetails] ❌ ERROR: Could not get View from Document");
                         throw new Exception("View not found in Document");
                     }
 
-                    System.Diagnostics.Debug.WriteLine($"👁️ [LoadFullDetails] ✅ Got View: {RevitView.Name}");
+                    Licorp.Diagnostics.LicorpTrace.Dbg($"👁️ [LoadFullDetails] ✅ Got View: {RevitView.Name}");
                 }
 
                 if (RevitView == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"👁️ [LoadFullDetails] ❌ ERROR: RevitView is null and no Document provided");
+                    Licorp.Diagnostics.LicorpTrace.Dbg($"👁️ [LoadFullDetails] ❌ ERROR: RevitView is null and no Document provided");
                     throw new Exception("RevitView is null - cannot load details");
                 }
 
@@ -273,11 +273,11 @@ namespace LicorpExportPlus.Models
                 ViewInfo = GetViewInfo(RevitView); // 🆕 Get extra info
                 IsFullyLoaded = true;
 
-                System.Diagnostics.Debug.WriteLine($"👁️ [LoadFullDetails] ✅ SUCCESS - DetailLevel={DetailLevel}, Discipline={Discipline}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"👁️ [LoadFullDetails] ✅ SUCCESS - DetailLevel={DetailLevel}, Discipline={Discipline}");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"👁️ [LoadFullDetails] ❌ ERROR: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"👁️ [LoadFullDetails] ❌ ERROR: {ex.Message}");
 
                 // If loading fails, keep default values
                 // Intentionally ignore exception details for graceful degradation

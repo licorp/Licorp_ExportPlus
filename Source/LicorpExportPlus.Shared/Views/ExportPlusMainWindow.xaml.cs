@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -70,7 +70,7 @@ namespace LicorpExportPlus.Views
         // Cancellation token for export operations
         private System.Threading.CancellationTokenSource _exportCancellationTokenSource;
         
-        // Flag Ä‘á»ƒ tracking export completion - Ä‘á»ƒ reset khi user chá»n láº¡i sheet/RevitView
+        // Flag để tracking export completion - để reset khi user chọn lại sheet/RevitView
         private bool _exportJustCompleted = false;
         
         // Flag to prevent infinite loop when bulk updating checkboxes
@@ -79,27 +79,27 @@ namespace LicorpExportPlus.Views
         // Flag to indicate window is closing - used to stop LoadSheets/LoadViews early
         private volatile bool _isClosing = false;
         
-        // âš¡ Lazy loading flags - only load sheets/views when user actually needs them
+        // ⚡ Lazy loading flags - only load sheets/views when user actually needs them
         private bool _sheetsLoaded = false;
         private bool _viewsLoaded = false;
-        private bool _fastGridInitialized = false;  // â† Prevent double init
-        private bool _windowFullyLoaded = false;    // â† Track if Window_Loaded has completed
+        private bool _fastGridInitialized = false;  // ← Prevent double init
+        private bool _windowFullyLoaded = false;    // ← Track if Window_Loaded has completed
 
-        // ðŸ“ Interaction tracking Ä‘á»ƒ log pháº£n há»“i UI trong lÃºc Ä‘ang load sheets
+        // 📝 Interaction tracking để log phản hồi UI trong lúc đang load sheets
         private bool _userInteractionLoggedDuringSheetLoad = false;
         private int _userInteractionEventCount = 0;
         
-        // âš¡ Debounce timer for UpdateExportSummary - batch multiple PropertyChanged events
+        // ⚡ Debounce timer for UpdateExportSummary - batch multiple PropertyChanged events
         private DispatcherTimer _summaryUpdateTimer;
         
-        // â±ï¸ CONTINUOUS UI MONITORING: Log every 5 seconds to detect freeze
+        // ⏱️ CONTINUOUS UI MONITORING: Log every 5 seconds to detect freeze
         private DispatcherTimer _uiMonitorTimer;
         private DateTime _formShownTime;
         private bool _isFormFullyShown = false;
         
         private const int USER_INTERACTION_LOG_LIMIT = 5;
         
-        // â±ï¸ PERFORMANCE TRACKING: Total time from constructor start to complete load
+        // ⏱️ PERFORMANCE TRACKING: Total time from constructor start to complete load
         private System.Diagnostics.Stopwatch _totalLoadTimer;
         
         // Performance optimization constants
@@ -250,7 +250,7 @@ namespace LicorpExportPlus.Views
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        // Export settings vá»›i data binding
+        // Export settings với data binding
         public ExportSettings ExportSettings { get; set; }
         
         // Navisworks export settings
@@ -378,10 +378,10 @@ namespace LicorpExportPlus.Views
 
         public ExportPlusMainWindow(Document document, UIApplication uiApp)
         {
-            // â±ï¸ START TOTAL LOAD TIMER
+            // ⏱️ START TOTAL LOAD TIMER
             _totalLoadTimer = System.Diagnostics.Stopwatch.StartNew();
             
-            // âš¡ FIX: Only log once to avoid 5x duplication
+            // ⚡ FIX: Only log once to avoid 5x duplication
             // Debug logging removed
             // Debug logging removed
             // Debug logging removed
@@ -389,7 +389,7 @@ namespace LicorpExportPlus.Views
             _document = document;
             _uiApp = uiApp;
             
-            // âœ… Initialize RevitAsyncHelper for safe async Revit API calls
+            // ✅ Initialize RevitAsyncHelper for safe async Revit API calls
             // RevitAsyncHelper no longer needed - using ricaun.Revit.UI.Tasks instead
             // Debug logging removed
             
@@ -420,7 +420,7 @@ namespace LicorpExportPlus.Views
             ExportSettings = new ExportSettings();
             // Debug logging removed
             
-            // âœ… SUBSCRIBE to format changes - detect when user ticks/unticks PDF/DWG/...
+            // ✅ SUBSCRIBE to format changes - detect when user ticks/unticks PDF/DWG/...
             // This allows smart reset: rebuild queue when formats change after export completed
             ExportSettings.PropertyChanged += ExportSettings_PropertyChanged;
             // Debug logging removed
@@ -473,16 +473,16 @@ namespace LicorpExportPlus.Views
             }
             catch (Exception initEx)
             {
-                System.Diagnostics.Debug.WriteLine($"[Export+] InitializeComponent ERROR: {initEx.Message}");
-                System.Diagnostics.Debug.WriteLine($"[Export+] InnerException: {initEx.InnerException?.Message}");
-                System.Diagnostics.Debug.WriteLine($"[Export+] InnerException StackTrace: {initEx.InnerException?.StackTrace}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[Export+] InitializeComponent ERROR: {initEx.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[Export+] InnerException: {initEx.InnerException?.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[Export+] InnerException StackTrace: {initEx.InnerException?.StackTrace}");
                 
                 // Build detailed error message with inner exception
-                string detailedError = $"Lá»—i khá»Ÿi táº¡o giao diá»‡n XAML: {initEx.Message}";
+                string detailedError = $"Lỗi khởi tạo giao diện XAML: {initEx.Message}";
                 if (initEx.InnerException != null)
                 {
-                    detailedError += $"\n\nâŒ Chi tiáº¿t lá»—i:\n{initEx.InnerException.Message}";
-                    detailedError += $"\n\nðŸ“ Stack Trace:\n{initEx.InnerException.StackTrace}";
+                    detailedError += $"\n\n❌ Chi tiết lỗi:\n{initEx.InnerException.Message}";
+                    detailedError += $"\n\n📍 Stack Trace:\n{initEx.InnerException.StackTrace}";
                 }
                 
                 throw new Exception(detailedError, initEx);
@@ -506,10 +506,10 @@ namespace LicorpExportPlus.Views
             
             InitializeProfiles();
             
-            // âš¡âš¡âš¡ CRITICAL FIX: KHÃ”NG load sheets trong constructor!
-            // Form pháº£i hiá»‡n NGAY Láº¬P Tá»¨C, load data SAU trong Loaded event
+            // ⚡⚡⚡ CRITICAL FIX: KHÔNG load sheets trong constructor!
+            // Form phải hiện NGAY LẬP TỨC, load data SAU trong Loaded event
             
-            // Khá»Ÿi táº¡o collection rá»—ng Ä‘á»ƒ DataGrid cÃ³ thá»ƒ bind
+            // Khởi tạo collection rỗng để DataGrid có thể bind
             Sheets = new ObservableRangeCollection<SheetItem>();
             
             _sheetsLoaded = false;
@@ -519,23 +519,23 @@ namespace LicorpExportPlus.Views
             UpdateFormatSelection();
             UpdateNavigationButtons();
             
-            // âš¡ Initialize View/Sheet Set Manager (fast - just create object)
+            // ⚡ Initialize View/Sheet Set Manager (fast - just create object)
             _viewSheetSetManager = new ViewSheetSetService(_document);
             
-            // âš¡ Initialize empty ViewSheetSets for binding
+            // ⚡ Initialize empty ViewSheetSets for binding
             ViewSheetSets = new ObservableCollection<ViewSheetSetInfo>();
             
             AttachUserInteractionLoggingHandlers();
             // Debug logging removed
             
-            // âš¡ Initialize UI monitoring timer - logs every 5 seconds to detect freeze
+            // ⚡ Initialize UI monitoring timer - logs every 5 seconds to detect freeze
             _uiMonitorTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromSeconds(5) // Log every 5 seconds
             };
             _uiMonitorTimer.Tick += UIMonitorTimer_Tick;
             
-            // âš¡ Initialize debounce timer for UpdateExportSummary
+            // ⚡ Initialize debounce timer for UpdateExportSummary
             _summaryUpdateTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromMilliseconds(100) // 100ms delay
@@ -561,11 +561,11 @@ namespace LicorpExportPlus.Views
 
             // Debug logging removed
             
-            // âš¡âš¡âš¡ CRITICAL: Unsubscribe trÆ°á»›c khi subscribe Ä‘á»ƒ trÃ¡nh duplicate
-            this.Loaded -= ExportPlusMainWindow_Loaded;  // Remove náº¿u Ä‘Ã£ tá»“n táº¡i
-            this.Loaded += ExportPlusMainWindow_Loaded;  // Add má»›i
+            // ⚡⚡⚡ CRITICAL: Unsubscribe trước khi subscribe để tránh duplicate
+            this.Loaded -= ExportPlusMainWindow_Loaded;  // Remove nếu đã tồn tại
+            this.Loaded += ExportPlusMainWindow_Loaded;  // Add mới
             
-            // âš¡ CONTINUOUS USER INTERACTION MONITORING (not just during load!)
+            // ⚡ CONTINUOUS USER INTERACTION MONITORING (not just during load!)
             AttachPermanentUserInteractionHandlers();
             // Debug logging removed
         }
@@ -578,7 +578,6 @@ namespace LicorpExportPlus.Views
             this.PreviewMouseDown += OnUserMouseDown;
             this.PreviewMouseWheel += OnUserMouseWheel;
             this.PreviewKeyDown += OnUserKeyDown;
-            this.PreviewMouseMove += OnUserMouseMove;
             
             // Debug logging removed
         }
@@ -599,18 +598,6 @@ namespace LicorpExportPlus.Views
             // Debug logging removed
         }
         
-        private DateTime _lastMouseMoveLog = DateTime.MinValue;
-        private void OnUserMouseMove(object sender, WpfMouseEventArgs e)
-        {
-            // Throttle mouse move logs (every 2 seconds)
-            var now = DateTime.Now;
-            if ((now - _lastMouseMoveLog).TotalSeconds >= 2)
-            {
-                _lastMouseMoveLog = now;
-                var pos = e.GetPosition(this);
-            }
-        }
-
         private void AttachUserInteractionLoggingHandlers()
         {
             this.PreviewMouseDown -= OnPreviewMouseDownDuringLoad;
@@ -628,7 +615,7 @@ namespace LicorpExportPlus.Views
 
         private void DetachUserInteractionLoggingHandlers()
         {
-            // âš¡ ONLY detach "during load" handlers, NOT permanent handlers!
+            // ⚡ ONLY detach "during load" handlers, NOT permanent handlers!
             this.PreviewMouseDown -= OnPreviewMouseDownDuringLoad;
             this.PreviewMouseWheel -= OnPreviewMouseWheelDuringLoad;
             this.PreviewKeyDown -= OnPreviewKeyDownDuringLoad;
@@ -724,7 +711,7 @@ namespace LicorpExportPlus.Views
                 }
             }
             
-            // âš¡ CRITICAL: Subscribe PropertyChanged AFTER all chunks bound
+            // ⚡ CRITICAL: Subscribe PropertyChanged AFTER all chunks bound
             // BUT do it in BATCHES to avoid blocking UI thread
             // Debug logging removed
             
@@ -747,8 +734,8 @@ namespace LicorpExportPlus.Views
         }
         
         /// <summary>
-        /// âš¡ Loaded event - Load ViewSheetSets vÃ  FastGrid trong background
-        /// Form Ä‘Ã£ hiá»‡n â†’ user cÃ³ thá»ƒ thao tÃ¡c ngay
+        /// ⚡ Loaded event - Load ViewSheetSets và FastGrid trong background
+        /// Form đã hiện → user có thể thao tác ngay
         /// </summary>
         private void ExportPlusMainWindow_Loaded(object sender, RoutedEventArgs e)
         {
@@ -806,14 +793,14 @@ namespace LicorpExportPlus.Views
         /// </summary>
         private void InitializeFastGrid()
         {
-            // âš¡ CRITICAL: Prevent duplicate initialization
+            // ⚡ CRITICAL: Prevent duplicate initialization
             if (_fastGridInitialized)
             {
                 // Debug logging removed
                 return;
             }
             
-            // FastWpfGrid Ä‘Ã£ bá»‹ xÃ³a - chá»‰ dÃ¹ng DataGrid
+            // FastWpfGrid đã bị xóa - chỉ dùng DataGrid
         }
 
         /// <summary>
@@ -975,7 +962,7 @@ namespace LicorpExportPlus.Views
         }
 
         /// <summary>
-        /// â±ï¸ UI MONITOR TIMER: Logs every 5 seconds to detect UI freeze patterns
+        /// ⏱️ UI MONITOR TIMER: Logs every 5 seconds to detect UI freeze patterns
         /// Tracks elapsed time since form shown and checks if user can interact
         /// </summary>
         private void UIMonitorTimer_Tick(object sender, EventArgs e)
@@ -1000,8 +987,8 @@ namespace LicorpExportPlus.Views
         }
 
         /// <summary>
-        /// âš¡ DEBOUNCED PropertyChanged handler - batches multiple updates into single UI refresh
-        /// Prevents cascading UpdateExportSummary calls (89 sheets Ã— UpdateExportSummary = freeze!)
+        /// ⚡ DEBOUNCED PropertyChanged handler - batches multiple updates into single UI refresh
+        /// Prevents cascading UpdateExportSummary calls (89 sheets × UpdateExportSummary = freeze!)
         /// </summary>
         private void SheetItem_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
@@ -1055,23 +1042,23 @@ namespace LicorpExportPlus.Views
             DetachUserInteractionLoggingHandlers();
             // Debug logging removed
             
-            // â±ï¸ Stop UI monitor timer
+            // ⏱️ Stop UI monitor timer
             if (_uiMonitorTimer != null && _uiMonitorTimer.IsEnabled)
             {
                 _uiMonitorTimer.Stop();
                 // Debug logging removed
             }
             
-            // âš¡âš¡âš¡ CRITICAL: Set cancel flag NGAY Láº¬P Tá»¨C Ä‘á»ƒ dá»«ng loading
+            // ⚡⚡⚡ CRITICAL: Set cancel flag NGAY LẬP TỨC để dừng loading
             _cancelLoading = true;
             _isLoadingSheets = false;
             // Debug logging removed
             
-            // âš¡ KHÃ”NG cháº·n Ä‘Ã³ng form - Ä‘á»ƒ user táº¯t ngay
-            // KhÃ´ng cáº§n Ä‘á»£i loading xong
+            // ⚡ KHÔNG chặn đóng form - để user tắt ngay
+            // Không cần đợi loading xong
             
-            // ðŸš€ OPTIMIZATION: Náº¿u e.Cancel = true (from cache logic), chá»‰ cleanup minimal
-            // Náº¿u e.Cancel = false, Ä‘Ã¢y lÃ  close tháº­t â†’ cleanup toÃ n bá»™
+            // 🚀 OPTIMIZATION: Nếu e.Cancel = true (from cache logic), chỉ cleanup minimal
+            // Nếu e.Cancel = false, đây là close thật → cleanup toàn bộ
             
             try
             {
@@ -1092,8 +1079,8 @@ namespace LicorpExportPlus.Views
                 // Give a brief moment for any pending operations to complete
                 System.Threading.Thread.Sleep(100);
                 
-                // âš ï¸ CHá»ˆ dispose resources náº¿u THáº¬T Sá»° Ä‘Ã³ng (khÃ´ng pháº£i Hide)
-                // Kiá»ƒm tra sau khi event handlers cháº¡y xong
+                // ⚠️ CHỈ dispose resources nếu THẬT SỰ đóng (không phải Hide)
+                // Kiểm tra sau khi event handlers chạy xong
                 if (!e.Cancel)
                 {
                     // Debug logging removed
@@ -1101,7 +1088,7 @@ namespace LicorpExportPlus.Views
                 }
                 else
                 {
-                    // Reset closing flag Ä‘á»ƒ láº§n má»Ÿ láº¡i cÃ³ thá»ƒ load náº¿u cáº§n
+                    // Reset closing flag để lần mở lại có thể load nếu cần
                     _isClosing = false;
                 }
             }
@@ -1113,7 +1100,7 @@ namespace LicorpExportPlus.Views
         }
         
         /// <summary>
-        /// Dispose táº¥t cáº£ resources khi THáº¬T Sá»° Ä‘Ã³ng window
+        /// Dispose tất cả resources khi THẬT SỰ đóng window
         /// </summary>
         private void DisposeResources()
         {
@@ -1221,12 +1208,12 @@ namespace LicorpExportPlus.Views
             }
         }
 
-        // âš¡ ASYNC LOADING: Use RevitAsyncHelper instead of DispatcherTimer
-        private const int SHEET_CHUNK_SIZE = 50; // âš¡ TÄƒng lÃªn 50 Ä‘á»ƒ Ã­t láº§n delay hÆ¡n
+        // ⚡ ASYNC LOADING: Use RevitAsyncHelper instead of DispatcherTimer
+        private const int SHEET_CHUNK_SIZE = 50; // ⚡ Tăng lên 50 để ít lần delay hơn
         private bool _isLoadingSheets = false;
-        private bool _cancelLoading = false; // âš¡ Flag Ä‘á»ƒ cancel loading khi Ä‘Ã³ng form
+        private bool _cancelLoading = false; // ⚡ Flag để cancel loading khi đóng form
         
-        // âœ… Throttle scroll events (tá»« RevitScheduleEditor)
+        // ✅ Throttle scroll events (từ RevitScheduleEditor)
         private DateTime _lastScrollLoadTime = DateTime.MinValue;
         private const int SCROLL_LOAD_THROTTLE_MS = 200;
 
@@ -1341,17 +1328,17 @@ namespace LicorpExportPlus.Views
         }
         
         /// <summary>
-        /// Check xem sheet cÃ³ chá»©a model views khÃ´ng (khÃ´ng pháº£i schedule)
+        /// Check xem sheet có chứa model views không (không phải schedule)
         /// </summary>
         private bool HasModelViews(ViewSheet sheet)
         {
             var placedViews = sheet.GetAllPlacedViews();
             
-            // âœ… Sheet trá»‘ng - VáºªN GIá»® (sáº½ hiá»‡n warning icon)
+            // ✅ Sheet trống - VẪN GIỮ (sẽ hiện warning icon)
             if (placedViews.Count == 0)
                 return true; // Changed: Keep empty sheets and show warning
             
-            // Kiá»ƒm tra Táº¤T Cáº¢ views trÃªn sheet
+            // Kiểm tra TẤT CẢ views trên sheet
             foreach (var viewId in placedViews)
             {
                 var view = _document.GetElement(viewId) as RevitView;
@@ -1359,16 +1346,16 @@ namespace LicorpExportPlus.Views
                 
                 if (!(view is ViewSchedule) && view.ViewType != ViewType.Schedule)
                 {
-                    return true; // CÃ³ model view
+                    return true; // Có model view
                 }
             }
             
-            return false; // Táº¥t cáº£ Ä‘á»u lÃ  schedule - Bá»Ž QUA
+            return false; // Tất cả đều là schedule - BỎ QUA
         }
         
         /// <summary>
-        /// âš¡ ASYNC VERSION: Load sheets without blocking UI
-        /// DÃ¹ng cho user interaction (click tab, button...)
+        /// ⚡ ASYNC VERSION: Load sheets without blocking UI
+        /// Dùng cho user interaction (click tab, button...)
         /// </summary>
         private void LoadSheetsSync()
         {
@@ -1376,7 +1363,7 @@ namespace LicorpExportPlus.Views
             
             var totalTimer = System.Diagnostics.Stopwatch.StartNew();
             
-            // âš¡âš¡âš¡ CRITICAL: Revit API MUST run on MAIN UI thread
+            // ⚡⚡⚡ CRITICAL: Revit API MUST run on MAIN UI thread
             // SYNCHRONOUS execution - NO async/await to avoid context issues!
             List<SheetItem> loadedSheets = null;
             
@@ -1385,7 +1372,7 @@ namespace LicorpExportPlus.Views
                 // Debug logging removed
                 var loadTimer = System.Diagnostics.Stopwatch.StartNew();
                 
-                // âœ… Call directly on main thread - NO async, NO Task.Run()!
+                // ✅ Call directly on main thread - NO async, NO Task.Run()!
                 loadedSheets = LoadSheetsInitialFast();
                 
                 loadTimer.Stop();
@@ -1399,7 +1386,7 @@ namespace LicorpExportPlus.Views
             
             // Debug logging removed
             
-            // âš¡ Update UI (already on UI thread)
+            // ⚡ Update UI (already on UI thread)
             // Debug logging removed
             var uiUpdateTimer = System.Diagnostics.Stopwatch.StartNew();
             
@@ -1429,7 +1416,7 @@ namespace LicorpExportPlus.Views
             totalTimer.Stop();
             // Debug logging removed
             
-            // âœ… Mark as loaded
+            // ✅ Mark as loaded
             _sheetsLoaded = true;
         }
         
@@ -1463,13 +1450,13 @@ namespace LicorpExportPlus.Views
         }
 
         /// <summary>
-        /// Load sheets in BACKGROUND THREAD - returns List (khÃ´ng update UI)
+        /// Load sheets in BACKGROUND THREAD - returns List (không update UI)
         /// </summary>
         private List<SheetItem> LoadSheetsInBackground()
         {
             // Debug logging removed
             
-            // âš¡âš¡âš¡ GUARD: Náº¿u Ä‘Ã£ load rá»“i, return empty
+            // ⚡⚡⚡ GUARD: Nếu đã load rồi, return empty
             if (_sheetsLoaded)
             {
                 // Debug logging removed
@@ -1480,7 +1467,7 @@ namespace LicorpExportPlus.Views
             
             try
             {
-                // âš¡ STEP 1: Get sheet IDs (NHANH!)
+                // ⚡ STEP 1: Get sheet IDs (NHANH!)
                 // Debug logging removed
                 var collectorSw = System.Diagnostics.Stopwatch.StartNew();
                 var allSheetIds = new FilteredElementCollector(_document)
@@ -1490,7 +1477,7 @@ namespace LicorpExportPlus.Views
                 collectorSw.Stop();
                 // Debug logging removed
                 
-                // âš¡ STEP 2: Filter Schedule sheets
+                // ⚡ STEP 2: Filter Schedule sheets
                 // Debug logging removed
                 var filterSw = System.Diagnostics.Stopwatch.StartNew();
                 var sheetIds = new List<ElementId>();
@@ -1531,10 +1518,10 @@ namespace LicorpExportPlus.Views
                     return new List<SheetItem>();
                 }
                 
-                // âš¡ STEP 3: Load parameters SEQUENTIALLY (Revit API is NOT thread-safe!)
+                // ⚡ STEP 3: Load parameters SEQUENTIALLY (Revit API is NOT thread-safe!)
                 var loadSw = System.Diagnostics.Stopwatch.StartNew();
                 
-                // âš¡âš¡âš¡ SEQUENTIAL PROCESSING: Revit API MUST run on main thread
+                // ⚡⚡⚡ SEQUENTIAL PROCESSING: Revit API MUST run on main thread
                 var tempList = new List<SheetItem>();
                 int loadedCount = 0;
                 
@@ -1546,7 +1533,7 @@ namespace LicorpExportPlus.Views
                     
                     try
                     {
-                        // ðŸ” DEBUG: Log EACH step
+                        // 🔍 DEBUG: Log EACH step
                         var sheet = _document.GetElement(sheetId) as ViewSheet;
                         if (sheet == null)
                         {
@@ -1556,19 +1543,19 @@ namespace LicorpExportPlus.Views
                         
                         // Debug logging removed
                         
-                        // âš¡ Load ALL parameters at once
+                        // ⚡ Load ALL parameters at once
                         // Debug logging removed
                         var parameters = GetSheetParametersFast(sheet);
                         // Debug logging removed
                         
-                        // âš¡âš¡âš¡ SKIP GetCachedSheetSize() - TOO SLOW (8-20 seconds per sheet!)
+                        // ⚡⚡⚡ SKIP GetCachedSheetSize() - TOO SLOW (8-20 seconds per sheet!)
                         // FilteredElementCollector in SheetSizeDetector causes massive delays
                         // Use fast pattern-based detection instead
                         string sheetSize = GuessSheetSizeFromNumber(sheet.SheetNumber);
                         
                         // Debug logging removed
                         
-                        // âš ï¸ Check if sheet has views
+                        // ⚠️ Check if sheet has views
                         var (hasNoView, warningMsg) = CheckSheetViews(sheet);
                         if (hasNoView)
                         {
@@ -1583,7 +1570,7 @@ namespace LicorpExportPlus.Views
                             CustomFileName = $"{sheet.SheetNumber} - {sheet.Name}",
                             Size = sheetSize,
                             Revision = parameters.Revision,
-                            // âš¡ NEW: Extended parameters
+                            // ⚡ NEW: Extended parameters
                             DrawnBy = parameters.DrawnBy,
                             CheckedBy = parameters.CheckedBy,
                             ApprovedBy = parameters.ApprovedBy,
@@ -1591,7 +1578,7 @@ namespace LicorpExportPlus.Views
                             DesignOption = parameters.DesignOption,
                             Phase = parameters.Phase,
                             IsSelected = false,
-                            IsFullyLoaded = true, // âš¡ All data loaded!
+                            IsFullyLoaded = true, // ⚡ All data loaded!
                             HasNoView = hasNoView,
                             WarningMessage = warningMsg
                         });
@@ -1625,7 +1612,7 @@ namespace LicorpExportPlus.Views
         }
         
         /// <summary>
-        /// Load sheets Äá»’NG Bá»˜ theo chunk - Nhanh vÃ¬ khÃ´ng cÃ³ overhead cá»§a async/await
+        /// Load sheets ĐỒNG BỘ theo chunk - Nhanh vì không có overhead của async/await
         /// </summary>
         private void LoadSheetsSync(List<ElementId> sheetIds)
         {
@@ -1633,10 +1620,10 @@ namespace LicorpExportPlus.Views
             {
                 int loadedCount = 0;
                 
-                // Load tá»«ng chunk Äá»’NG Bá»˜ - Nhanh!
+                // Load từng chunk ĐỒNG BỘ - Nhanh!
                 for (int i = 0; i < sheetIds.Count; i += SHEET_CHUNK_SIZE)
                 {
-                    // âš¡ Check cancel flag trÆ°á»›c má»—i chunk
+                    // ⚡ Check cancel flag trước mỗi chunk
                     if (_cancelLoading)
                     {
                         // Debug logging removed
@@ -1646,10 +1633,10 @@ namespace LicorpExportPlus.Views
                     var endIndex = Math.Min(i + SHEET_CHUNK_SIZE, sheetIds.Count);
                     var chunkSw = System.Diagnostics.Stopwatch.StartNew();
                     
-                    // âœ… Load chunk TRá»°C TIáº¾P tá»« document
+                    // ✅ Load chunk TRỰC TIẾP từ document
                     for (int j = i; j < endIndex; j++)
                     {
-                        // âš¡ Check cancel flag trong loop
+                        // ⚡ Check cancel flag trong loop
                         if (_cancelLoading)
                         {
                             // Debug logging removed
@@ -1682,7 +1669,7 @@ namespace LicorpExportPlus.Views
                     var progress = (loadedCount * 100) / sheetIds.Count;
                 }
                 
-                // â±ï¸ COMPLETE!
+                // ⏱️ COMPLETE!
                 if (_totalLoadTimer != null)
                 {
                     _totalLoadTimer.Stop();
@@ -1703,12 +1690,12 @@ namespace LicorpExportPlus.Views
             }
         }
         
-        // âš¡ TECHNIQUE 3: Load visible rows on scroll (ProSheets on-demand loading)
+        // ⚡ TECHNIQUE 3: Load visible rows on scroll (ProSheets on-demand loading)
         private void SheetsDataGrid_ScrollChanged(object sender, System.Windows.Controls.ScrollChangedEventArgs e)
         {
             // Debug logging removed
             
-            // âœ… Throttle scroll events - chá»‰ load khi scroll dá»«ng 200ms (giáº£m spam)
+            // ✅ Throttle scroll events - chỉ load khi scroll dừng 200ms (giảm spam)
             if (e.VerticalChange != 0)
             {
                 var now = DateTime.Now;
@@ -1732,7 +1719,7 @@ namespace LicorpExportPlus.Views
         {
             // Debug logging removed
             
-            // âœ… Throttle scroll events - only load when scroll stops for 200ms
+            // ✅ Throttle scroll events - only load when scroll stops for 200ms
             if (e.VerticalChange != 0)
             {
                 var now = DateTime.Now;
@@ -1767,7 +1754,7 @@ namespace LicorpExportPlus.Views
                 int lastVisibleIndex = Math.Min(firstVisibleIndex + visibleCount, Sheets.Count);
                 
                 
-                // âš¡ NOTE: All sheets should already have Size loaded in background (IsFullyLoaded = true)
+                // ⚡ NOTE: All sheets should already have Size loaded in background (IsFullyLoaded = true)
                 // This method should rarely find items needing reload
                 int itemsNeedingLoad = 0;
                 for (int i = firstVisibleIndex; i < lastVisibleIndex; i++)
@@ -1851,7 +1838,7 @@ namespace LicorpExportPlus.Views
                     }
                 }
                 
-                // ðŸ†• CRITICAL: Force UI refresh for loaded items
+                // 🆕 CRITICAL: Force UI refresh for loaded items
                 if (itemsLoaded > 0)
                 {
                     // Debug logging removed
@@ -1904,7 +1891,7 @@ namespace LicorpExportPlus.Views
         }
         
         /// <summary>
-        /// âš¡ OPTIMIZED: Load sheets from ElementIds (sequential)
+        /// ⚡ OPTIMIZED: Load sheets from ElementIds (sequential)
         /// Only loads Element when needed - no upfront graphics generation
         /// </summary>
         private void LoadSheetsSequentialFromIds(List<ElementId> sheetIds)
@@ -1922,7 +1909,7 @@ namespace LicorpExportPlus.Views
                 
                 try
                 {
-                    // âœ… LAZY LOAD: Only get element when processing
+                    // ✅ LAZY LOAD: Only get element when processing
                     var sheet = _document.GetElement(elementId) as ViewSheet;
                     if (sheet == null || sheet.IsTemplate) continue;
                     
@@ -1949,7 +1936,7 @@ namespace LicorpExportPlus.Views
         }
         
         /// <summary>
-        /// âš¡ OPTIMIZED: Load sheets from ElementIds (parallel)
+        /// ⚡ OPTIMIZED: Load sheets from ElementIds (parallel)
         /// </summary>
         private void LoadSheetsParallelFromIds(List<ElementId> sheetIds)
         {
@@ -2032,7 +2019,7 @@ namespace LicorpExportPlus.Views
             public string Revision { get; set; }
             public string SheetSize { get; set; }
             
-            // âš¡ NEW: Extended parameters
+            // ⚡ NEW: Extended parameters
             public string DrawnBy { get; set; }
             public string CheckedBy { get; set; }
             public string ApprovedBy { get; set; }
@@ -2042,7 +2029,7 @@ namespace LicorpExportPlus.Views
         }
         
         /// <summary>
-        /// âš¡ NEW: Load ALL sheet parameters at once (more efficient than 7 separate calls)
+        /// ⚡ NEW: Load ALL sheet parameters at once (more efficient than 7 separate calls)
         /// </summary>
         private SheetParameters GetSheetParametersFast(ViewSheet sheet)
         {
@@ -2080,7 +2067,7 @@ namespace LicorpExportPlus.Views
         }
         
         /// <summary>
-        /// âš¡ SAFE FALLBACK: Guess sheet size from sheet number when detection fails
+        /// ⚡ SAFE FALLBACK: Guess sheet size from sheet number when detection fails
         /// </summary>
         private string GuessSheetSizeFromNumber(string sheetNumber)
         {
@@ -2098,7 +2085,7 @@ namespace LicorpExportPlus.Views
         }
         
         /// <summary>
-        /// âš¡ FAST: Get revision without exception handling overhead (DEPRECATED - use GetSheetParametersFast)
+        /// ⚡ FAST: Get revision without exception handling overhead (DEPRECATED - use GetSheetParametersFast)
         /// </summary>
         private string GetRevisionFast(ViewSheet sheet)
         {
@@ -2114,7 +2101,7 @@ namespace LicorpExportPlus.Views
         }
         
         /// <summary>
-        /// âš¡ FAST: Process sheet with minimal overhead
+        /// ⚡ FAST: Process sheet with minimal overhead
         /// </summary>
         private SheetItem ProcessSheetFast(ViewSheet sheet)
         {
@@ -2136,13 +2123,13 @@ namespace LicorpExportPlus.Views
                 WarningMessage = warningMsg
             };
             
-            // âš¡ NO PropertyChanged here - will subscribe AFTER binding completes
+            // ⚡ NO PropertyChanged here - will subscribe AFTER binding completes
             
             return sheetItem;
         }
         
         /// <summary>
-        /// âš¡ FAST: Get sheet size from cache (no FilteredElementCollector call)
+        /// ⚡ FAST: Get sheet size from cache (no FilteredElementCollector call)
         /// </summary>
         private string GetCachedSheetSize(ViewSheet sheet)
         {
@@ -2150,7 +2137,7 @@ namespace LicorpExportPlus.Views
         }
         
         /// <summary>
-        /// âš¡ FAST: Create SheetItem from pre-extracted data (parallel-safe)
+        /// ⚡ FAST: Create SheetItem from pre-extracted data (parallel-safe)
         /// </summary>
         private SheetItem CreateSheetItemFromDataFast(SheetDataFast data)
         {
@@ -2163,7 +2150,7 @@ namespace LicorpExportPlus.Views
                 SheetName = data.SheetName,
                 Revision = data.Revision,
                 Size = data.SheetSize,
-                // âš¡ NEW: Extended parameters
+                // ⚡ NEW: Extended parameters
                 DrawnBy = data.DrawnBy,
                 CheckedBy = data.CheckedBy,
                 ApprovedBy = data.ApprovedBy,
@@ -2171,10 +2158,10 @@ namespace LicorpExportPlus.Views
                 DesignOption = data.DesignOption,
                 Phase = data.Phase,
                 CustomFileName = $"{data.SheetNumber}_{data.SheetName.Replace(" ", "_")}",
-                IsFullyLoaded = true // âš¡ Already loaded all data (Size, Revision, + 6 extended params) in background
+                IsFullyLoaded = true // ⚡ Already loaded all data (Size, Revision, + 6 extended params) in background
             };
             
-            // âš¡ NO PropertyChanged here - will subscribe AFTER binding completes
+            // ⚡ NO PropertyChanged here - will subscribe AFTER binding completes
             
             return sheetItem;
         }
@@ -2339,7 +2326,7 @@ namespace LicorpExportPlus.Views
                     WarningMessage = warningMsg
                 };
                 
-                // âš¡ NO PropertyChanged here - will subscribe AFTER binding completes
+                // ⚡ NO PropertyChanged here - will subscribe AFTER binding completes
                 
                 return sheetItem;
             }
@@ -2360,7 +2347,7 @@ namespace LicorpExportPlus.Views
                 var viewIds = sheet.GetAllPlacedViews();
                 if (viewIds == null || viewIds.Count == 0)
                 {
-                    return (true, "âš ï¸ No RevitView placed on this sheet");
+                    return (true, "⚠️ No RevitView placed on this sheet");
                 }
                 return (false, null);
             }
@@ -2387,7 +2374,10 @@ namespace LicorpExportPlus.Views
                     Parameter revParam = sheet.get_Parameter(BuiltInParameter.SHEET_CURRENT_REVISION);
                     revision = revParam?.AsString() ?? "";
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    LicorpTrace.Warn($"Could not read revision for sheet {sheetNumber}: {ex.Message}");
+                }
                 
                 // Get size with caching
                 string sheetSize = GetCachedSheetSize(sheet);
@@ -2410,7 +2400,7 @@ namespace LicorpExportPlus.Views
                     WarningMessage = warningMsg
                 };
                 
-                // âš¡ NO PropertyChanged here - will subscribe AFTER binding completes
+                // ⚡ NO PropertyChanged here - will subscribe AFTER binding completes
                 
                 return sheetItem;
             }
@@ -2438,7 +2428,7 @@ namespace LicorpExportPlus.Views
                 
                 // Debug logging removed
                 
-                // âš¡ CRITICAL: Subscribe PropertyChanged in BATCHES to avoid blocking
+                // ⚡ CRITICAL: Subscribe PropertyChanged in BATCHES to avoid blocking
                 int subscribedCount = 0;
                 const int SUBSCRIBE_BATCH_SIZE = 20;
                 
@@ -2644,7 +2634,7 @@ namespace LicorpExportPlus.Views
                 
                 try
                 {
-                    // âœ… LAZY LOAD: Only get element when processing
+                    // ✅ LAZY LOAD: Only get element when processing
                     var view = _document.GetElement(elementId) as RevitView;
                     if (view == null) continue;
                     
@@ -2668,7 +2658,7 @@ namespace LicorpExportPlus.Views
         }
         
         /// <summary>
-        /// âš¡ OPTIMIZED: Load views from ElementIds (parallel)
+        /// ⚡ OPTIMIZED: Load views from ElementIds (parallel)
         /// </summary>
         private void LoadViewsParallelFromIds(List<ElementId> viewIds, Dictionary<string, string> existingCustomNames)
         {
@@ -2856,12 +2846,12 @@ namespace LicorpExportPlus.Views
         // Helper class to store RevitView data
         private class ViewData
         {
-            public ElementId ElementId { get; set; } // âš¡ NEW: For ElementIds optimization
+            public ElementId ElementId { get; set; } // ⚡ NEW: For ElementIds optimization
             public RevitView View { get; set; }
             public string ViewId { get; set; }
             public string ViewName { get; set; }
             public string ViewType { get; set; }
-            public string ViewScale { get; set; } // âš¡ NEW: For fast extraction
+            public string ViewScale { get; set; } // ⚡ NEW: For fast extraction
             public string Scale { get; set; }
             public string DetailLevel { get; set; }
             public string Discipline { get; set; }
@@ -2909,7 +2899,7 @@ namespace LicorpExportPlus.Views
                 View = view,
                 ViewId = view.Id.GetIdValue().ToString(),
                 ViewName = view.Name ?? "Unnamed",
-                ViewType = ConvertViewTypeToString(view.ViewType)  // âœ… FIX: Convert to human-readable
+                ViewType = ConvertViewTypeToString(view.ViewType)  // ✅ FIX: Convert to human-readable
             };
             
             // Extract scale, detail level, discipline
@@ -2995,7 +2985,7 @@ namespace LicorpExportPlus.Views
         }
         
         /// <summary>
-        /// âš¡ FAST: Create ViewItem from pre-extracted data with custom filename restore
+        /// ⚡ FAST: Create ViewItem from pre-extracted data with custom filename restore
         /// </summary>
         private ViewItem CreateViewItemFromData(ViewData data, Dictionary<string, string> existingCustomNames, ref int restoredCount)
         {
@@ -3059,7 +3049,7 @@ namespace LicorpExportPlus.Views
         {
             try
             {
-                // âš ï¸ CRITICAL: Do NOT load full details here - parallel processing runs on background thread
+                // ⚠️ CRITICAL: Do NOT load full details here - parallel processing runs on background thread
                 // LoadFullDetails() will be called later on UI thread when rows are scrolled into RevitView
                 var viewItem = new ViewItem(view, loadFullDetails: false);
                 
@@ -3071,7 +3061,7 @@ namespace LicorpExportPlus.Views
                     restoredCount++;
                 }
                 
-                // âš¡ NO PropertyChanged here - will subscribe AFTER binding completes
+                // ⚡ NO PropertyChanged here - will subscribe AFTER binding completes
                 
                 return viewItem;
             }
@@ -3100,7 +3090,7 @@ namespace LicorpExportPlus.Views
                 
                 // Debug logging removed
                 
-                // âš¡ CRITICAL: Subscribe PropertyChanged AFTER binding completes
+                // ⚡ CRITICAL: Subscribe PropertyChanged AFTER binding completes
                 foreach (var RevitView in Views)
                 {
                     RevitView.PropertyChanged += ViewItem_PropertyChanged;
@@ -3122,7 +3112,7 @@ namespace LicorpExportPlus.Views
             // Debug logging removed
         }
         
-        // âš¡ Centralized ViewItem PropertyChanged handler
+        // ⚡ Centralized ViewItem PropertyChanged handler
         private void ViewItem_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == "IsSelected")
@@ -3312,12 +3302,12 @@ namespace LicorpExportPlus.Views
         }
 
         /// <summary>
-        /// Reset addin after export completed - cho phÃ©p user chá»n láº¡i vÃ  export tiáº¿p
-        /// THÃ”NG MINH: 
-        /// - Giá»¯ nguyÃªn sheets/views Ä‘Ã£ chá»n (náº¿u user khÃ´ng thay Ä‘á»•i)
-        /// - Giá»¯ nguyÃªn formats Ä‘Ã£ chá»n (náº¿u user khÃ´ng thay Ä‘á»•i)
-        /// - Cáº¬P NHáº¬T queue dá»±a trÃªn selection HIá»†N Táº I (sau khi user cÃ³ thá»ƒ Ä‘Ã£ thay Ä‘á»•i)
-        /// - Cho phÃ©p user chá»n thÃªm/bá» sheets, chá»n format khÃ¡c mÃ  khÃ´ng cáº§n táº¯t window
+        /// Reset addin after export completed - cho phép user chọn lại và export tiếp
+        /// THÔNG MINH: 
+        /// - Giữ nguyên sheets/views đã chọn (nếu user không thay đổi)
+        /// - Giữ nguyên formats đã chọn (nếu user không thay đổi)
+        /// - CẬP NHẬT queue dựa trên selection HIỆN TẠI (sau khi user có thể đã thay đổi)
+        /// - Cho phép user chọn thêm/bỏ sheets, chọn format khác mà không cần tắt window
         /// </summary>
         private void ResetAddinAfterExport()
         {
@@ -3326,7 +3316,7 @@ namespace LicorpExportPlus.Views
             
             try
             {
-                // ðŸ“Š LOG CURRENT STATE (trÆ°á»›c khi reset)
+                // 📊 LOG CURRENT STATE (trước khi reset)
                 var currentSelectedSheets = Sheets?.Count(s => s.IsSelected) ?? 0;
                 var currentSelectedViews = Views?.Count(v => v.IsSelected) ?? 0;
                 var currentFormats = ExportSettings?.GetSelectedFormatsList() ?? new List<string>();
@@ -3335,14 +3325,14 @@ namespace LicorpExportPlus.Views
                 // Debug logging removed
                 // Debug logging removed
                 
-                // 1. Clear OLD Export Queue (queue tá»« láº§n export trÆ°á»›c)
+                // 1. Clear OLD Export Queue (queue từ lần export trước)
                 if (ExportQueueDataGrid?.ItemsSource is ObservableCollection<ExportQueueItem> queueItems)
                 {
                     var oldQueueCount = queueItems.Count;
                     queueItems.Clear();
                 }
                 
-                // 2. Reset Progress UI (vá» tráº¡ng thÃ¡i ban Ä‘áº§u)
+                // 2. Reset Progress UI (về trạng thái ban đầu)
                 if (ExportProgressBar != null)
                 {
                     ExportProgressBar.Value = 0;
@@ -3353,7 +3343,7 @@ namespace LicorpExportPlus.Views
                 }
                 // Debug logging removed
                 
-                // 3. Reset Export Button (enable láº¡i, sáºµn sÃ ng export)
+                // 3. Reset Export Button (enable lại, sẵn sàng export)
                 if (StartExportButton != null)
                 {
                     StartExportButton.IsEnabled = true;
@@ -3361,16 +3351,16 @@ namespace LicorpExportPlus.Views
                 }
                 // Debug logging removed
                 
-                // 4. âœ¨ SMART UPDATE: Rebuild Export Queue dá»±a trÃªn CURRENT selection
-                // UpdateExportQueue() sáº½:
-                //   - Äá»c sheets/views hiá»‡n táº¡i Ä‘ang selected (cÃ³ thá»ƒ user Ä‘Ã£ chá»n thÃªm/bá»)
-                //   - Äá»c formats hiá»‡n táº¡i Ä‘ang checked (cÃ³ thá»ƒ user Ä‘Ã£ thay Ä‘á»•i PDF/DWG/...)
-                //   - Táº¡o queue Má»šI pháº£n Ã¡nh Ä‘Ãºng selection HIá»†N Táº I
+                // 4. ✨ SMART UPDATE: Rebuild Export Queue dựa trên CURRENT selection
+                // UpdateExportQueue() sẽ:
+                //   - Đọc sheets/views hiện tại đang selected (có thể user đã chọn thêm/bỏ)
+                //   - Đọc formats hiện tại đang checked (có thể user đã thay đổi PDF/DWG/...)
+                //   - Tạo queue MỚI phản ánh đúng selection HIỆN TẠI
                 // Debug logging removed
                 
-                UpdateExportQueue(); // â† HÃ m nÃ y tá»± Ä‘á»™ng detect current state
+                UpdateExportQueue(); // ← Hàm này tự động detect current state
                 
-                // ðŸ“Š LOG NEW STATE (sau khi rebuild queue)
+                // 📊 LOG NEW STATE (sau khi rebuild queue)
                 var newQueueItems = ExportQueueDataGrid?.ItemsSource as ObservableCollection<ExportQueueItem>;
                 var newQueueCount = newQueueItems?.Count ?? 0;
                 
@@ -3428,7 +3418,7 @@ namespace LicorpExportPlus.Views
 
                 var selectedFormats = ExportSettings?.GetSelectedFormatsList() ?? new List<string>();
                 
-                // DEBUG: Log chi tiáº¿t format states
+                // DEBUG: Log chi tiết format states
                 // Debug logging removed
                 // Debug logging removed
                 // Debug logging removed
@@ -3645,7 +3635,7 @@ namespace LicorpExportPlus.Views
         {
             try
             {
-                // âœ… FIX: Use the Size property from SheetItem which already has "A1", "A2", etc.
+                // ✅ FIX: Use the Size property from SheetItem which already has "A1", "A2", etc.
                 // This ensures consistency between Sheets tab and Create tab
                 if (!string.IsNullOrEmpty(sheet?.Size))
                 {
@@ -3787,7 +3777,7 @@ namespace LicorpExportPlus.Views
         private void EditCustomDrawingNumber_Click(object sender, RoutedEventArgs e)
         {
             // Debug logging removed
-            MessageBox.Show("Custom Drawing Number Editor sáº½ Ä‘Æ°á»£c thÃªm trong phiÃªn báº£n tiáº¿p theo!", "ThÃ´ng bÃ¡o", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Custom Drawing Number Editor sẽ được thêm trong phiên bản tiếp theo!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void FormatToggle_Checked(object sender, RoutedEventArgs e)
@@ -3822,7 +3812,7 @@ namespace LicorpExportPlus.Views
                 // Debug logging removed
             }
             
-            dialog.Description = "Chá»n thÆ° má»¥c xuáº¥t file Export +";
+            dialog.Description = "Chọn thư mục xuất file Export +";
             dialog.ShowNewFolderButton = true;
             
             if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
@@ -3851,7 +3841,7 @@ namespace LicorpExportPlus.Views
             if (selectedSheets == null || !selectedSheets.Any())
             {
                 // Debug logging removed
-                MessageBox.Show("Vui lÃ²ng chá»n Ã­t nháº¥t má»™t sheet Ä‘á»ƒ export!", "Cáº£nh bÃ¡o", 
+                MessageBox.Show("Vui lòng chọn ít nhất một sheet để export!", "Cảnh báo", 
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -3862,7 +3852,7 @@ namespace LicorpExportPlus.Views
             if (string.IsNullOrEmpty(outputPath))
             {
                 // Debug logging removed
-                MessageBox.Show("Vui lÃ²ng chá»n thÆ° má»¥c xuáº¥t file!", "Cáº£nh bÃ¡o", 
+                MessageBox.Show("Vui lòng chọn thư mục xuất file!", "Cảnh báo", 
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -3872,7 +3862,7 @@ namespace LicorpExportPlus.Views
             if (!selectedFormats.Any())
             {
                 // Debug logging removed
-                MessageBox.Show("Vui lÃ²ng chá»n Ã­t nháº¥t má»™t Ä‘á»‹nh dáº¡ng file!", "Cáº£nh bÃ¡o", 
+                MessageBox.Show("Vui lòng chọn ít nhất một định dạng file!", "Cảnh báo", 
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -3889,7 +3879,7 @@ Template: {ExportSettings?.FileNameTemplate ?? "Default"}
 Combine Files: {ExportSettings?.CombineFiles ?? false}
 Include Revision: {ExportSettings?.IncludeRevision ?? false}
 
-Tiáº¿p tá»¥c xuáº¥t file?";
+Tiếp tục xuất file?";
             
             // Debug logging removed
             var result = MessageBox.Show(summary, "Export + Confirmation", 
@@ -3929,7 +3919,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                     {
                         // Debug logging removed
                         
-                        // âœ… Determine output path: create subfolder if CreateSeparateFolders is enabled
+                        // ✅ Determine output path: create subfolder if CreateSeparateFolders is enabled
                         string formatOutputPath = outputPath;
                         if (ExportSettings?.CreateSeparateFolders == true)
                         {
@@ -3941,7 +3931,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                         if (format.ToUpper() == "PDF")
                         {
                             var pdfManager = new PDFExportService(_document);
-                            bool pdfResult = pdfManager.ExportSheetsToPDF(sheetsToExport, formatOutputPath, ExportSettings);  // âœ… Use format-specific folder
+                            bool pdfResult = pdfManager.ExportSheetsToPDF(sheetsToExport, formatOutputPath, ExportSettings);  // ✅ Use format-specific folder
                             if (pdfResult)
                             {
                                 totalExported += sheetsToExport.Count;
@@ -3959,7 +3949,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                     
                     if (exportSuccess)
                     {
-                        // âœ… Save settings to current profile after successful export
+                        // ✅ Save settings to current profile after successful export
                         if (_profileManager?.CurrentProfile != null)
                         {
                             // Debug logging removed
@@ -4009,8 +3999,8 @@ Tiáº¿p tá»¥c xuáº¥t file?";
         {
             // Debug logging removed
             
-            // âœ“ SMART RESET: PhÃ¡t hiá»‡n user Ä‘Ã£ thay Ä‘á»•i selection sau export
-            // â†’ Tá»± Ä‘á»™ng reset vÃ  rebuild queue vá»›i selection Má»šI
+            // ✓ SMART RESET: Phát hiện user đã thay đổi selection sau export
+            // → Tự động reset và rebuild queue với selection MỚI
             if (_exportJustCompleted)
             {
                 // Debug logging removed
@@ -4031,13 +4021,13 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                 SheetsDataGrid.Visibility = System.Windows.Visibility.Visible;
                 ViewsDataGrid.Visibility = System.Windows.Visibility.Collapsed;
                 
-                // âš¡âš¡âš¡ CRITICAL: CHá»ˆ load náº¿u Window_Loaded ÄÃƒ CHáº Y XONG
-                // Náº¿u chÆ°a, Window_Loaded sáº½ lo viá»‡c load
+                // ⚡⚡⚡ CRITICAL: CHỈ load nếu Window_Loaded ĐÃ CHẠY XONG
+                // Nếu chưa, Window_Loaded sẽ lo việc load
                 if (_windowFullyLoaded && !_sheetsLoaded)
                 {
                     var sw = System.Diagnostics.Stopwatch.StartNew();
                     
-                    // âš¡âš¡âš¡ Load SYNCHRONOUSLY - Revit API must stay on main thread!
+                    // ⚡⚡⚡ Load SYNCHRONOUSLY - Revit API must stay on main thread!
                     LoadSheetsSync();
                     
                     sw.Stop();
@@ -4065,7 +4055,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                 
                 // Debug logging removed
                 
-                // âš¡ LAZY LOADING: Only load if not already loaded
+                // ⚡ LAZY LOADING: Only load if not already loaded
                 if (!_viewsLoaded && _windowFullyLoaded)
                 {
                     // Debug logging removed
@@ -4075,7 +4065,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                     _viewsLoaded = true;
                     // Debug logging removed
                     
-                    // ðŸ†• Load visible rows immediately after views are loaded
+                    // 🆕 Load visible rows immediately after views are loaded
                     Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new System.Action(() =>
                     {
                         // Debug logging removed
@@ -4099,8 +4089,8 @@ Tiáº¿p tá»¥c xuáº¥t file?";
         {
             // Debug logging removed
             
-            // âœ“ SMART RESET: PhÃ¡t hiá»‡n user Ä‘Ã£ thay Ä‘á»•i selection sau export
-            // â†’ Tá»± Ä‘á»™ng reset vÃ  rebuild queue vá»›i selection Má»šI
+            // ✓ SMART RESET: Phát hiện user đã thay đổi selection sau export
+            // → Tự động reset và rebuild queue với selection MỚI
             if (_exportJustCompleted)
             {
                 // Debug logging removed
@@ -4116,7 +4106,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
         /// <summary>
         /// Handle ExportSettings property changes - detect format checkbox changes
         /// Khi user tick/untick PDF, DWG, NWC, IFC, etc. sau khi export xong
-        /// â†’ Tá»± Ä‘á»™ng rebuild queue vá»›i formats Má»šI
+        /// → Tự động rebuild queue với formats MỚI
         /// </summary>
         private void ExportSettings_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
@@ -4129,8 +4119,8 @@ Tiáº¿p tá»¥c xuáº¥t file?";
             {
                 // Debug logging removed
                 
-                // âœ… SMART RESET: Náº¿u export vá»«a hoÃ n thÃ nh vÃ  user thay Ä‘á»•i format
-                // â†’ Auto rebuild queue vá»›i formats Má»šI
+                // ✅ SMART RESET: Nếu export vừa hoàn thành và user thay đổi format
+                // → Auto rebuild queue với formats MỚI
                 if (_exportJustCompleted)
                 {
                     // Debug logging removed
@@ -4140,7 +4130,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                 }
                 else
                 {
-                    // Normal flow: User Ä‘ang config trÆ°á»›c khi export
+                    // Normal flow: User đang config trước khi export
                     // Just update queue normally
                     // Debug logging removed
                     UpdateExportQueue();
@@ -4859,8 +4849,8 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                     }
                 }
                 
-                // âœ… RESET ADDIN khi user quay láº¡i tab Sheets (tab 0) hoáº·c Views sau khi export xong
-                // Cho phÃ©p user chá»n láº¡i vÃ  export má»›i khÃ´ng cáº§n táº¯t window
+                // ✅ RESET ADDIN khi user quay lại tab Sheets (tab 0) hoặc Views sau khi export xong
+                // Cho phép user chọn lại và export mới không cần tắt window
                 if (_exportJustCompleted && (selectedIndex == 0 || selectedIndex == 1))
                 {
                     // Debug logging removed
@@ -4883,8 +4873,8 @@ Tiáº¿p tá»¥c xuáº¥t file?";
         {
             // Debug logging removed
             
-            // âœ… RESET ADDIN náº¿u user báº¥m Back sau khi export xong
-            // Cho phÃ©p user quay láº¡i chá»n láº¡i sheet/RevitView vÃ  export má»›i
+            // ✅ RESET ADDIN nếu user bấm Back sau khi export xong
+            // Cho phép user quay lại chọn lại sheet/RevitView và export mới
             if (_exportJustCompleted)
             {
                 // Debug logging removed
@@ -4972,7 +4962,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                 
                 if (totalSelected == 0)
                 {
-                    MessageBox.Show("Vui lÃ²ng chá»n Ã­t nháº¥t 1 sheet hoáº·c RevitView Ä‘á»ƒ export!", "ThÃ´ng bÃ¡o", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Vui lòng chọn ít nhất 1 sheet hoặc RevitView để export!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -4989,7 +4979,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                 var formats = ExportSettings?.GetSelectedFormatsList() ?? new List<string>();
                 if (!formats.Any())
                 {
-                    MessageBox.Show("Vui lÃ²ng chá»n Ã­t nháº¥t 1 format Ä‘á»ƒ export!", "ThÃ´ng bÃ¡o", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Vui lòng chọn ít nhất 1 format để export!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -5125,7 +5115,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                 // Show results
                 if (exportSuccess)
                 {
-                    var successMessage = $"Export hoÃ n táº¥t!\n\n" +
+                    var successMessage = $"Export hoàn tất!\n\n" +
                                        $"Items: {totalSelected} ({selectedSheets.Count} sheets, {selectedViews.Count} views)\n" +
                                        $"Output: {outputFolder}\n\n" +
                                        $"Results:\n{string.Join("\n", exportResults)}";
@@ -5143,7 +5133,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
             catch (Exception ex)
             {
                 // Debug logging removed
-                MessageBox.Show($"Lá»—i export: {ex.Message}", "Lá»—i", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Lỗi export: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -5160,14 +5150,14 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                         sheet.CustomFileName = sheet.SheetNumber;
                     }
                     // Debug logging removed
-                    MessageBox.Show($"ÄÃ£ reset {_sheets.Count} custom file names vá» máº·c Ä‘á»‹nh (Sheet Number).", 
-                                   "ThÃ nh cÃ´ng", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show($"Đã reset {_sheets.Count} custom file names về mặc định (Sheet Number).", 
+                                   "Thành công", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
                 // Debug logging removed
-                MessageBox.Show($"Lá»—i reset file names: {ex.Message}", "Lá»—i", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Lỗi reset file names: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -5183,7 +5173,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                     // Show dialog to select XML profile for custom naming template
                     var openFileDialog = new Microsoft.Win32.OpenFileDialog
                     {
-                        Title = "Chá»n XML Profile Ä‘á»ƒ Ã¡p dá»¥ng template custom file name",
+                        Title = "Chọn XML Profile để áp dụng template custom file name",
                         Filter = "XML files (*.xml)|*.xml|All files (*.*)|*.*",
                         DefaultExt = ".xml"
                     };
@@ -5217,26 +5207,26 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                             }
                             
                             // Debug logging removed
-                            MessageBox.Show($"ÄÃ£ Ã¡p dá»¥ng template cho {sheetInfos.Count} sheets.\nCustom file names Ä‘Ã£ Ä‘Æ°á»£c cáº­p nháº­t.", 
-                                           "ThÃ nh cÃ´ng", MessageBoxButton.OK, MessageBoxImage.Information);
+                            MessageBox.Show($"Đã áp dụng template cho {sheetInfos.Count} sheets.\nCustom file names đã được cập nhật.", 
+                                           "Thành công", MessageBoxButton.OK, MessageBoxImage.Information);
                         }
                         else
                         {
-                            MessageBox.Show("KhÃ´ng thá»ƒ táº¡o custom file names tá»« template nÃ y.", 
-                                           "Cáº£nh bÃ¡o", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            MessageBox.Show("Không thể tạo custom file names từ template này.", 
+                                           "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
                         }
                     }
                 }
                 else
                 {
-                    MessageBox.Show("Vui lÃ²ng chá»n profile vÃ  load sheets trÆ°á»›c.", 
-                                   "Cáº£nh bÃ¡o", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Vui lòng chọn profile và load sheets trước.", 
+                                   "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
                 // Debug logging removed
-                MessageBox.Show($"Lá»—i Ã¡p dá»¥ng template: {ex.Message}", "Lá»—i", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Lỗi áp dụng template: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         */
@@ -5252,7 +5242,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
             {
                 var dialog = new System.Windows.Forms.FolderBrowserDialog
                 {
-                    Description = "Chá»n thÆ° má»¥c xuáº¥t file",
+                    Description = "Chọn thư mục xuất file",
                     SelectedPath = OutputFolder ?? Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
                     ShowNewFolderButton = true
                 };
@@ -5266,7 +5256,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
             catch (Exception ex)
             {
                 // Debug logging removed
-                MessageBox.Show($"Lá»—i chá»n thÆ° má»¥c: {ex.Message}", "Lá»—i", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Lỗi chọn thư mục: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -5282,15 +5272,15 @@ Tiáº¿p tá»¥c xuáº¥t file?";
 
                 if (totalSelected == 0)
                 {
-                    MessageBox.Show("Vui lÃ²ng chá»n Ã­t nháº¥t má»™t sheet hoáº·c RevitView Ä‘á»ƒ xuáº¥t.", 
-                                   "Cáº£nh bÃ¡o", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Vui lòng chọn ít nhất một sheet hoặc RevitView để xuất.", 
+                                   "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 if (string.IsNullOrEmpty(OutputFolder) || !Directory.Exists(OutputFolder))
                 {
-                    MessageBox.Show("Vui lÃ²ng chá»n thÆ° má»¥c xuáº¥t há»£p lá»‡.", 
-                                   "Cáº£nh bÃ¡o", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Vui lòng chọn thư mục xuất hợp lệ.", 
+                                   "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -5302,16 +5292,16 @@ Tiáº¿p tá»¥c xuáº¥t file?";
 
                 if (!hasFormat)
                 {
-                    MessageBox.Show("Vui lÃ²ng chá»n Ã­t nháº¥t má»™t Ä‘á»‹nh dáº¡ng xuáº¥t.", 
-                                   "Cáº£nh bÃ¡o", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Vui lòng chọn ít nhất một định dạng xuất.", 
+                                   "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 // Show confirmation dialog
-                var message = $"Báº¡n sáº¯p xuáº¥t {totalSelected} item(s) ";
+                var message = $"Bạn sắp xuất {totalSelected} item(s) ";
                 if (sheetsSelected > 0 && viewsSelected > 0)
                 {
-                    message += $"({sheetsSelected} sheet(s) vÃ  {viewsSelected} view(s)) ";
+                    message += $"({sheetsSelected} sheet(s) và {viewsSelected} view(s)) ";
                 }
                 else if (sheetsSelected > 0)
                 {
@@ -5321,9 +5311,9 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                 {
                     message += $"({viewsSelected} view(s)) ";
                 }
-                message += $"vÃ o thÆ° má»¥c:\n{OutputFolder}\n\nTiáº¿p tá»¥c?";
+                message += $"vào thư mục:\n{OutputFolder}\n\nTiếp tục?";
 
-                var result = MessageBox.Show(message, "XÃ¡c nháº­n xuáº¥t file", 
+                var result = MessageBox.Show(message, "Xác nhận xuất file", 
                                            MessageBoxButton.YesNo, MessageBoxImage.Question);
 
                 if (result == MessageBoxResult.Yes)
@@ -5340,7 +5330,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
             catch (Exception ex)
             {
                 // Debug logging removed
-                MessageBox.Show($"Lá»—i xuáº¥t file: {ex.Message}", "Lá»—i", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Lỗi xuất file: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -5960,7 +5950,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                     {
                         // Debug logging removed
                         
-                        // âœ… Determine output path: create subfolder if CreateSeparateFolders is enabled
+                        // ✅ Determine output path: create subfolder if CreateSeparateFolders is enabled
                         string formatOutputFolder = outputFolder;
                         if (ExportSettings?.CreateSeparateFolders == true)
                         {
@@ -5983,7 +5973,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                             {
                                 // Debug logging removed
                                 
-                                // âš ï¸ REMOVED: Don't set all items to Processing/0% upfront
+                                // ⚠️ REMOVED: Don't set all items to Processing/0% upfront
                                 // Callback will set each item to Processing when export starts
                                 // This prevents "all 0%" problem
                                 
@@ -5993,7 +5983,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                                 // Set export parameters
                                 _pdfExportHandler.Document = _document;
                                 _pdfExportHandler.SheetItems = selectedSheets;
-                                _pdfExportHandler.OutputFolder = formatOutputFolder;  // âœ… Use format-specific folder
+                                _pdfExportHandler.OutputFolder = formatOutputFolder;  // ✅ Use format-specific folder
                                 _pdfExportHandler.Settings = ExportSettings;
                                 _pdfExportHandler.ProgressCallback = (current, total, sheetNumber, isFileCompleted) =>
                                 {
@@ -6104,7 +6094,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                             
                             if (selectedSheets.Any())
                             {
-                                // âš ï¸ REMOVED: Don't set all items to Processing/0% upfront
+                                // ⚠️ REMOVED: Don't set all items to Processing/0% upfront
                                 // Callback will set each item to Processing when export starts
                                 
                                 try
@@ -6114,7 +6104,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                                     // Create DWG export settings from UI  
                                     var dwgSettings = new PSDWGExportSettings
                                     {
-                                        OutputFolder = formatOutputFolder,  // âœ… Use format-specific folder
+                                        OutputFolder = formatOutputFolder,  // ✅ Use format-specific folder
                                         DWGSetupName = ExportSettings?.DWGExportSetupName ?? "Standard",
                                         DWGVersion = ExportSettings?.DWGVersion ?? "2018",
                                         UseSharedCoordinates = ExportSettings?.UseSharedCoordinates ?? true,
@@ -6231,11 +6221,11 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                             {
                                 // Debug logging removed
                                 
-                                // âš ï¸ REMOVED: Don't set all items to Processing/0% upfront
+                                // ⚠️ REMOVED: Don't set all items to Processing/0% upfront
                                 // Callback will set each item to Processing when export starts
                                 // This prevents "all 0%" problem
                                 
-                                // Convert ViewItem â†’ View3D using Document
+                                // Convert ViewItem → View3D using Document
                                 var view3DList = new List<View3D>();
                                 foreach (var viewItem in threeDViewItems)
                                 {
@@ -6262,7 +6252,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                                     _ifcExportHandler.Document = _document;
                                     _ifcExportHandler.Views3D = view3DList;
                                     _ifcExportHandler.Settings = IFCSettings;
-                                    _ifcExportHandler.OutputFolder = formatOutputFolder;  // âœ… Use format-specific folder
+                                    _ifcExportHandler.OutputFolder = formatOutputFolder;  // ✅ Use format-specific folder
                                     
                                     // Set progress callback to update UI after EACH file export
                                     _ifcExportHandler.ProgressCallback = (viewName, success) =>
@@ -6393,13 +6383,13 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                             {
                                 // Debug logging removed
                                 
-                                // âš ï¸ REMOVED: Don't set all items to Processing/0% upfront
+                                // ⚠️ REMOVED: Don't set all items to Processing/0% upfront
                                 // Callback will set each item to Processing when export starts
                                 
                                 var nwcManager = new NWCExportService(_document);
                                 
                                 // Progress callback to update status after each RevitView
-                                bool nwcResult = nwcManager.ExportToNavisworks(threeDViews, NWCSettings, formatOutputFolder, "", (viewName, success) =>  // âœ… Use format-specific folder
+                                bool nwcResult = nwcManager.ExportToNavisworks(threeDViews, NWCSettings, formatOutputFolder, "", (viewName, success) =>  // ✅ Use format-specific folder
                                 {
                                     // This callback runs after each RevitView is exported
                                     // MUST run on UI thread for WPF updates
@@ -6501,7 +6491,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                             {
                                 // Debug logging removed
                                 
-                                // âš ï¸ REMOVED: Don't set all items to Processing/0% upfront
+                                // ⚠️ REMOVED: Don't set all items to Processing/0% upfront
                                 // Callback will set each item to Processing when export starts
                                 
                                 try
@@ -6624,7 +6614,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                             TryWriteExportReport(items, CreateFolderPathTextBox.Text);
                         }
                         
-                        // âœ“ SET FLAG: Export Ä‘Ã£ hoÃ n thÃ nh - sáºµn sÃ ng reset khi user chá»n láº¡i
+                        // ✓ SET FLAG: Export đã hoàn thành - sẵn sàng reset khi user chọn lại
                         _exportJustCompleted = true;
                         // Debug logging removed
                         
@@ -6741,7 +6731,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
             catch (Exception ex)
             {
                 // Debug logging removed
-                MessageBox.Show($"Lá»—i khi lá»c: {ex.Message}", "Lá»—i", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Lỗi khi lọc: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -6770,7 +6760,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
             catch (Exception ex)
             {
                 // Debug logging removed
-                MessageBox.Show($"Lá»—i khi reset filter: {ex.Message}", "Lá»—i", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Lỗi khi reset filter: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -6829,7 +6819,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
             catch (Exception ex)
             {
                 // Debug logging removed
-                MessageBox.Show($"Lá»—i khi set custom file name: {ex.Message}", "Lá»—i", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Lỗi khi set custom file name: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -7674,7 +7664,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
             {
                 // Debug logging removed
                 
-                // âœ… NO PERSISTENCE: Each export session starts fresh
+                // ✅ NO PERSISTENCE: Each export session starts fresh
                 // User must configure custom name each time they want to use it
                 
                 // Show parameter-based custom file name dialog (same as Sheet tab)
@@ -7688,7 +7678,7 @@ Tiáº¿p tá»¥c xuáº¥t file?";
                     var selectedParams = dialog.SelectedParameters.ToList();
                     // Debug logging removed
                     
-                    // âœ… TEMPORARY CONFIG: Only apply to ExportSettings for THIS export session
+                    // ✅ TEMPORARY CONFIG: Only apply to ExportSettings for THIS export session
                     // NOT saved to profile - user must set again next time
                     if (ExportSettings != null)
                     {

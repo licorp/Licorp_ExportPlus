@@ -134,6 +134,7 @@ setInfo.ViewIds.Add(view.Id);
             using (var trans = new Transaction(_doc, "Create ViewSheetSet"))
             {
                 trans.Start();
+                RevitFailurePreprocessor.ApplyTo(trans);
 
                 try
                 {
@@ -322,6 +323,7 @@ sheets.Add(sheet);
                 using (var trans = new Transaction(_doc, "Add to Existing ViewSheetSet"))
                 {
                     trans.Start();
+                    RevitFailurePreprocessor.ApplyTo(trans);
 
                     // Get current ViewSet
                     var currentViewSet = vss.Views;
@@ -423,6 +425,7 @@ long vssIdValue;
                 using (var trans = new Transaction(_doc, "Delete ViewSheetSet"))
                 {
                     trans.Start();
+                    RevitFailurePreprocessor.ApplyTo(trans);
 
                     var deletedIds = _doc.Delete(vss.Id);
                     LicorpTrace.Info($"Document.Delete() returned {deletedIds.Count} deleted element IDs");

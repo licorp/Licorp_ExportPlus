@@ -338,11 +338,9 @@ IsSelected = true
 
             if (xmlProfile.TemplateInfo.IsPDFChecked) profile.SelectedFormats.Add("PDF");
             if (xmlProfile.TemplateInfo.IsDWGChecked) profile.SelectedFormats.Add("DWG");
-            if (xmlProfile.TemplateInfo.IsDGNChecked) profile.SelectedFormats.Add("DGN");
             if (xmlProfile.TemplateInfo.IsIFCChecked) profile.SelectedFormats.Add("IFC");
             if (xmlProfile.TemplateInfo.IsIMGChecked) profile.SelectedFormats.Add("JPG");
             if (xmlProfile.TemplateInfo.IsNWCChecked) profile.SelectedFormats.Add("NWC");
-            if (xmlProfile.TemplateInfo.IsDWFChecked) profile.SelectedFormats.Add("DWF");
 
             return profile;
         }
@@ -433,11 +431,11 @@ IsSelected = true
 
                 setUIProperty("IsPDFChecked", template.IsPDFChecked);
                 setUIProperty("IsDWGChecked", template.IsDWGChecked);
-                setUIProperty("IsDGNChecked", template.IsDGNChecked);
+                setUIProperty("IsDGNChecked", false);
                 setUIProperty("IsIFCChecked", template.IsIFCChecked);
                 setUIProperty("IsIMGChecked", template.IsIMGChecked);
                 setUIProperty("IsNWCChecked", template.IsNWCChecked);
-                setUIProperty("IsDWFChecked", template.IsDWFChecked);
+                setUIProperty("IsDWFChecked", false);
 
                 if (template.SelectionSheets?.SelectedParamsVirtual?.SelectionParameters != null)
                 {

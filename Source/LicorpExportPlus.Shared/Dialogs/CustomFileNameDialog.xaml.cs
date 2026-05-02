@@ -78,12 +78,12 @@ namespace LicorpExportPlus.Dialogs
                 // Subscribe to preview changes
                 _selectedParameters.CollectionChanged += (s, e) => UpdatePreview();
                 
-                System.Diagnostics.Debug.WriteLine($"CustomFileNameDialog initialized successfully (isViewMode: {_isViewMode})");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"CustomFileNameDialog initialized successfully (isViewMode: {_isViewMode})");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"ERROR in CustomFileNameDialog constructor: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"ERROR in CustomFileNameDialog constructor: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"Stack trace: {ex.StackTrace}");
                 System.Windows.MessageBox.Show($"Error initializing Custom File Name Dialog:\n\n{ex.Message}\n\nPlease check the debug output for details.", 
                     "Initialization Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 throw;
@@ -98,7 +98,7 @@ namespace LicorpExportPlus.Dialogs
             try
             {
                 _availableParameters.Clear();
-                System.Diagnostics.Debug.WriteLine("Starting LoadAvailableParameters...");
+                Licorp.Diagnostics.LicorpTrace.Dbg("Starting LoadAvailableParameters...");
 
                 // Add common built-in sheet parameters
                 var commonParams = new[]
@@ -152,27 +152,27 @@ namespace LicorpExportPlus.Dialogs
                     _availableParameters.Add(param);
                 }
                 
-                System.Diagnostics.Debug.WriteLine($"Added {commonParams.Length} built-in parameters");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"Added {commonParams.Length} built-in parameters");
 
                 // Load from Revit document if available
                 if (_document != null)
                 {
-                    System.Diagnostics.Debug.WriteLine("Loading parameters from document...");
+                    Licorp.Diagnostics.LicorpTrace.Dbg("Loading parameters from document...");
                     LoadParametersFromDocument();
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine("No document provided, skipping document parameters");
+                    Licorp.Diagnostics.LicorpTrace.Dbg("No document provided, skipping document parameters");
                 }
 
                 // Initialize filtered list
                 ApplyParameterFilter("");
-                System.Diagnostics.Debug.WriteLine($"LoadAvailableParameters completed. Total: {_availableParameters.Count} parameters");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"LoadAvailableParameters completed. Total: {_availableParameters.Count} parameters");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"ERROR in LoadAvailableParameters: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"ERROR in LoadAvailableParameters: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"Stack trace: {ex.StackTrace}");
                 // Don't throw - allow dialog to open with default parameters
             }
         }
@@ -184,7 +184,7 @@ namespace LicorpExportPlus.Dialogs
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"Attempting to load parameters from document (isViewMode: {_isViewMode})...");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"Attempting to load parameters from document (isViewMode: {_isViewMode})...");
                 
                 if (_isViewMode)
                 {
@@ -197,7 +197,7 @@ namespace LicorpExportPlus.Dialogs
 
                     if (view != null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Found printable view '{view.Name}', extracting parameters...");
+                        Licorp.Diagnostics.LicorpTrace.Dbg($"Found printable view '{view.Name}', extracting parameters...");
                         int paramCount = 0;
                         
                         foreach (Parameter param in view.Parameters)
@@ -224,16 +224,16 @@ namespace LicorpExportPlus.Dialogs
                             }
                             catch (Exception paramEx)
                             {
-                                System.Diagnostics.Debug.WriteLine($"Error processing view parameter: {paramEx.Message}");
+                                Licorp.Diagnostics.LicorpTrace.Dbg($"Error processing view parameter: {paramEx.Message}");
                                 // Continue with next parameter
                             }
                         }
                         
-                        System.Diagnostics.Debug.WriteLine($"Loaded {paramCount} additional parameters from view");
+                        Licorp.Diagnostics.LicorpTrace.Dbg($"Loaded {paramCount} additional parameters from view");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine("No printable views found in document");
+                        Licorp.Diagnostics.LicorpTrace.Dbg("No printable views found in document");
                     }
                 }
                 else
@@ -246,7 +246,7 @@ namespace LicorpExportPlus.Dialogs
 
                     if (sheets != null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Found sheet, extracting parameters...");
+                        Licorp.Diagnostics.LicorpTrace.Dbg($"Found sheet, extracting parameters...");
                         int paramCount = 0;
                         
                         foreach (Parameter param in sheets.Parameters)
@@ -273,25 +273,25 @@ namespace LicorpExportPlus.Dialogs
                             }
                             catch (Exception paramEx)
                             {
-                                System.Diagnostics.Debug.WriteLine($"Error processing parameter: {paramEx.Message}");
+                                Licorp.Diagnostics.LicorpTrace.Dbg($"Error processing parameter: {paramEx.Message}");
                                 // Continue with next parameter
                             }
                         }
                         
-                        System.Diagnostics.Debug.WriteLine($"Loaded {paramCount} additional parameters from sheet");
+                        Licorp.Diagnostics.LicorpTrace.Dbg($"Loaded {paramCount} additional parameters from sheet");
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine("No sheets found in document");
+                        Licorp.Diagnostics.LicorpTrace.Dbg("No sheets found in document");
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine($"Total parameters available: {_availableParameters.Count}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"Total parameters available: {_availableParameters.Count}");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"ERROR in LoadParametersFromDocument: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"ERROR in LoadParametersFromDocument: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"Stack trace: {ex.StackTrace}");
                 // Don't throw - continue with built-in parameters only
             }
         }
@@ -341,7 +341,7 @@ namespace LicorpExportPlus.Dialogs
         /// </summary>
         private void LoadExistingConfiguration(List<SelectedParameterInfo> existingConfig)
         {
-            System.Diagnostics.Debug.WriteLine($"Loading existing configuration with {existingConfig.Count} parameters");
+            Licorp.Diagnostics.LicorpTrace.Dbg($"Loading existing configuration with {existingConfig.Count} parameters");
             
             foreach (var param in existingConfig)
             {
@@ -359,7 +359,7 @@ namespace LicorpExportPlus.Dialogs
                 paramCopy.PreviewChanged += UpdatePreview;
                 _selectedParameters.Add(paramCopy);
                 
-                System.Diagnostics.Debug.WriteLine($"Loaded parameter: {param.ParameterName}, Separator: '{param.Separator}'");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"Loaded parameter: {param.ParameterName}, Separator: '{param.Separator}'");
             }
         }
 

@@ -100,7 +100,7 @@ namespace LicorpExportPlus.Utils
             _batchLoader.BatchLoadCompleted += OnBatchLoadCompleted;
             _externalEvent = ExternalEvent.Create(_batchLoader);
 
-            Debug.WriteLine("[AsyncSheetViewManager] Initialized");
+            Licorp.Diagnostics.LicorpTrace.Dbg("[AsyncSheetViewManager] Initialized");
         }
 
         /// <summary>
@@ -110,11 +110,11 @@ namespace LicorpExportPlus.Utils
         {
             if (IsLoading)
             {
-                Debug.WriteLine("[AsyncSheetViewManager] Already loading, ignoring request");
+                Licorp.Diagnostics.LicorpTrace.Dbg("[AsyncSheetViewManager] Already loading, ignoring request");
                 return;
             }
 
-            Debug.WriteLine("[AsyncSheetViewManager] === Starting async sheet load ===");
+            Licorp.Diagnostics.LicorpTrace.Dbg("[AsyncSheetViewManager] === Starting async sheet load ===");
 
             try
             {
@@ -135,7 +135,7 @@ namespace LicorpExportPlus.Utils
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[AsyncSheetViewManager] ERROR: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AsyncSheetViewManager] ERROR: {ex.Message}");
                 IsLoading = false;
                 LoadingStatus = $"Error: {ex.Message}";
             }
@@ -148,11 +148,11 @@ namespace LicorpExportPlus.Utils
         {
             if (IsLoading)
             {
-                Debug.WriteLine("[AsyncSheetViewManager] Already loading, ignoring request");
+                Licorp.Diagnostics.LicorpTrace.Dbg("[AsyncSheetViewManager] Already loading, ignoring request");
                 return;
             }
 
-            Debug.WriteLine("[AsyncSheetViewManager] === Starting async view load ===");
+            Licorp.Diagnostics.LicorpTrace.Dbg("[AsyncSheetViewManager] === Starting async view load ===");
 
             try
             {
@@ -173,7 +173,7 @@ namespace LicorpExportPlus.Utils
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[AsyncSheetViewManager] ERROR: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AsyncSheetViewManager] ERROR: {ex.Message}");
                 IsLoading = false;
                 LoadingStatus = $"Error: {ex.Message}";
             }
@@ -187,7 +187,7 @@ namespace LicorpExportPlus.Utils
                 try
                 {
                     var result = e.Result;
-                    Debug.WriteLine($"[AsyncSheetViewManager] Batch completed: Type={result.RequestType}, Time={result.ProcessingTime.TotalMilliseconds}ms");
+                    Licorp.Diagnostics.LicorpTrace.Dbg($"[AsyncSheetViewManager] Batch completed: Type={result.RequestType}, Time={result.ProcessingTime.TotalMilliseconds}ms");
 
                     switch (result.RequestType)
                     {
@@ -210,7 +210,7 @@ namespace LicorpExportPlus.Utils
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[AsyncSheetViewManager] ERROR in callback: {ex.Message}");
+                    Licorp.Diagnostics.LicorpTrace.Dbg($"[AsyncSheetViewManager] ERROR in callback: {ex.Message}");
                     IsLoading = false;
                     LoadingStatus = $"Error: {ex.Message}";
                 }
@@ -222,7 +222,7 @@ namespace LicorpExportPlus.Utils
             _allElementIds = result.ElementIds;
             TotalElements = _allElementIds.Count;
 
-            Debug.WriteLine($"[AsyncSheetViewManager] Sheet IDs loaded: {TotalElements} sheets");
+            Licorp.Diagnostics.LicorpTrace.Dbg($"[AsyncSheetViewManager] Sheet IDs loaded: {TotalElements} sheets");
             LoadingStatus = $"Found {TotalElements} sheets. Loading data...";
 
             if (TotalElements == 0)
@@ -242,7 +242,7 @@ namespace LicorpExportPlus.Utils
             var sheetDataList = result.SheetDataList;
             LoadedElements += sheetDataList.Count;
 
-            Debug.WriteLine($"[AsyncSheetViewManager] Sheet batch {result.BatchIndex + 1} loaded: {sheetDataList.Count} sheets");
+            Licorp.Diagnostics.LicorpTrace.Dbg($"[AsyncSheetViewManager] Sheet batch {result.BatchIndex + 1} loaded: {sheetDataList.Count} sheets");
             LoadingStatus = $"Loading sheet {LoadedElements} of {TotalElements}...";
 
             // Notify subscribers
@@ -251,7 +251,7 @@ namespace LicorpExportPlus.Utils
             // Check if done
             if (LoadedElements >= TotalElements)
             {
-                Debug.WriteLine("[AsyncSheetViewManager] All sheets loaded");
+                Licorp.Diagnostics.LicorpTrace.Dbg("[AsyncSheetViewManager] All sheets loaded");
                 IsLoading = false;
                 LoadingStatus = $"Completed! Loaded {LoadedElements} sheets";
                 LoadingCompleted?.Invoke(this, EventArgs.Empty);
@@ -269,7 +269,7 @@ namespace LicorpExportPlus.Utils
             _allElementIds = result.ElementIds;
             TotalElements = _allElementIds.Count;
 
-            Debug.WriteLine($"[AsyncSheetViewManager] View IDs loaded: {TotalElements} views");
+            Licorp.Diagnostics.LicorpTrace.Dbg($"[AsyncSheetViewManager] View IDs loaded: {TotalElements} views");
             LoadingStatus = $"Found {TotalElements} views. Loading data...";
 
             if (TotalElements == 0)
@@ -289,7 +289,7 @@ namespace LicorpExportPlus.Utils
             var viewDataList = result.ViewDataList;
             LoadedElements += viewDataList.Count;
 
-            Debug.WriteLine($"[AsyncSheetViewManager] View batch {result.BatchIndex + 1} loaded: {viewDataList.Count} views");
+            Licorp.Diagnostics.LicorpTrace.Dbg($"[AsyncSheetViewManager] View batch {result.BatchIndex + 1} loaded: {viewDataList.Count} views");
             LoadingStatus = $"Loading view {LoadedElements} of {TotalElements}...";
 
             // Notify subscribers
@@ -298,7 +298,7 @@ namespace LicorpExportPlus.Utils
             // Check if done
             if (LoadedElements >= TotalElements)
             {
-                Debug.WriteLine("[AsyncSheetViewManager] All views loaded");
+                Licorp.Diagnostics.LicorpTrace.Dbg("[AsyncSheetViewManager] All views loaded");
                 IsLoading = false;
                 LoadingStatus = $"Completed! Loaded {LoadedElements} views";
                 LoadingCompleted?.Invoke(this, EventArgs.Empty);
@@ -319,7 +319,7 @@ namespace LicorpExportPlus.Utils
             var batchElementIds = _allElementIds.Skip(startIndex).Take(actualBatchSize).ToList();
             int batchIndex = startIndex / batchSize;
 
-            Debug.WriteLine($"[AsyncSheetViewManager] Loading sheet batch {batchIndex + 1}: elements {startIndex + 1}-{startIndex + actualBatchSize}");
+            Licorp.Diagnostics.LicorpTrace.Dbg($"[AsyncSheetViewManager] Loading sheet batch {batchIndex + 1}: elements {startIndex + 1}-{startIndex + actualBatchSize}");
 
             var request = new BatchLoadRequest
             {
@@ -340,7 +340,7 @@ namespace LicorpExportPlus.Utils
             var batchElementIds = _allElementIds.Skip(startIndex).Take(actualBatchSize).ToList();
             int batchIndex = startIndex / batchSize;
 
-            Debug.WriteLine($"[AsyncSheetViewManager] Loading view batch {batchIndex + 1}: elements {startIndex + 1}-{startIndex + actualBatchSize}");
+            Licorp.Diagnostics.LicorpTrace.Dbg($"[AsyncSheetViewManager] Loading view batch {batchIndex + 1}: elements {startIndex + 1}-{startIndex + actualBatchSize}");
 
             var request = new BatchLoadRequest
             {

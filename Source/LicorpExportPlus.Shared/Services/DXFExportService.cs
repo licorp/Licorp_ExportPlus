@@ -5,6 +5,7 @@ using System.Linq;
 using Autodesk.Revit.DB;
 using LicorpExportPlus.Models;
 using Licorp.Diagnostics;
+using LicorpExportPlus.Helpers;
 
 namespace LicorpExportPlus.Services
 {
@@ -52,8 +53,9 @@ namespace LicorpExportPlus.Services
                     _document.Export(outputFolder, filePrefix, viewIds, exportOptions);
                     exportSuccess = true;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    LogTrace($"DXF export call failed: {ex.Message}");
                     exportSuccess = false;
                 }
 
@@ -215,29 +217,7 @@ namespace LicorpExportPlus.Services
 
         private string SanitizeFileName(string fileName)
         {
-            if (string.IsNullOrWhiteSpace(fileName))
-                return "Export";
-
-            var invalidChars = Path.GetInvalidFileNameChars();
-            foreach (var c in invalidChars)
-            {
-                fileName = fileName.Replace(c, '_');
-            }
-
-            fileName = fileName.Replace("{", "_")
-                .Replace("}", "_")
-                .Replace("[", "_")
-                .Replace("]", "_")
-                .Replace(":", "_")
-                .Replace(";", "_")
-                .Replace(",", "_");
-
-            while (fileName.Contains("__"))
-            {
-                fileName = fileName.Replace("__", "_");
-            }
-
-            return fileName.Trim('_');
+            return FileNameHelper.SanitizeFileName(fileName);
         }
 
         private void LogTrace(string message)
@@ -246,9 +226,12 @@ namespace LicorpExportPlus.Services
             {
                 string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
                 string fullMessage = $"[DXF Export] {timestamp} - {message}";
-                System.Diagnostics.Debug.WriteLine(fullMessage);
+                LicorpTrace.Dbg(fullMessage);
             }
-            catch { }
+            catch
+            {
+                // Logging must never break export.
+            }
         }
     }
 }

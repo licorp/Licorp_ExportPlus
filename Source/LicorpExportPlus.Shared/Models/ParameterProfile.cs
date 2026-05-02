@@ -47,7 +47,7 @@ namespace LicorpExportPlus.Models
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Export +] ⚠️ Failed to load parameter profile: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[Export +] ⚠️ Failed to load parameter profile: {ex.Message}");
                 return new ParameterProfile();
             }
         }
@@ -69,11 +69,11 @@ namespace LicorpExportPlus.Models
                 var json = JsonConvert.SerializeObject(this, Formatting.Indented);
                 File.WriteAllText(ProfilePath, json);
 
-                System.Diagnostics.Debug.WriteLine($"[Export +] ✅ Parameter profile saved: {FrequentParameters.Count} parameters");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[Export +] ✅ Parameter profile saved: {FrequentParameters.Count} parameters");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[Export +] ⚠️ Failed to save parameter profile: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[Export +] ⚠️ Failed to save parameter profile: {ex.Message}");
             }
         }
 

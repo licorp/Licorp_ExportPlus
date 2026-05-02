@@ -32,7 +32,7 @@ namespace LicorpExportPlus.Utils
                     .Cast<FamilyInstance>()
                     .ToList();
 
-                System.Diagnostics.Debug.WriteLine($"[SheetSizeDetector] ⚡ Preloaded {allTitleBlocks.Count} TitleBlocks");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[SheetSizeDetector] ⚡ Preloaded {allTitleBlocks.Count} TitleBlocks");
 
                 // Build cache: OwnerViewId -> Size
                 foreach (var tb in allTitleBlocks)
@@ -55,11 +55,11 @@ namespace LicorpExportPlus.Utils
                     }
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[SheetSizeDetector] ✅ Cached sizes for {_titleBlockSizeCache.Count} sheets");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[SheetSizeDetector] ✅ Cached sizes for {_titleBlockSizeCache.Count} sheets");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[SheetSizeDetector] ERROR preloading: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[SheetSizeDetector] ERROR preloading: {ex.Message}");
             }
         }
 
@@ -106,7 +106,7 @@ namespace LicorpExportPlus.Utils
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting size from sheet parameters: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"Error getting size from sheet parameters: {ex.Message}");
             }
 
             return "Unknown";
@@ -151,7 +151,7 @@ namespace LicorpExportPlus.Utils
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error calculating paper size: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"Error calculating paper size: {ex.Message}");
             }
 
             return "Unknown";

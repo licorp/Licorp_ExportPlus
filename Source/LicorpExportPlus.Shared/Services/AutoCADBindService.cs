@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using Licorp.Diagnostics;
 using Microsoft.Win32;
 
 namespace LicorpExportPlus.Services
@@ -15,6 +16,9 @@ namespace LicorpExportPlus.Services
     {
         private static readonly string[] AutoCADVersions = new[]
         {
+            "AutoCAD.Application.27", // AutoCAD 2027
+            "AutoCAD.Application.26", // AutoCAD 2026
+            "AutoCAD.Application.25", // AutoCAD 2025
             "AutoCAD.Application.24", // AutoCAD 2024
             "AutoCAD.Application.23", // AutoCAD 2023
             "AutoCAD.Application.22", // AutoCAD 2022
@@ -29,9 +33,20 @@ namespace LicorpExportPlus.Services
         {
             try
             {
+                // Prefer registry discovery because Autodesk install paths and vertical products vary by version.
+                var autocadPath = FindAutoCADFromRegistry();
+                if (!string.IsNullOrEmpty(autocadPath) && File.Exists(autocadPath))
+                {
+                    LicorpTrace.Info($"[AutoCAD] Found AutoCAD from registry: {autocadPath}");
+                    return autocadPath;
+                }
+
                 // Try common installation paths
                 string[] possiblePaths = new[]
                 {
+                    @"C:\Program Files\Autodesk\AutoCAD 2027\acad.exe",
+                    @"C:\Program Files\Autodesk\AutoCAD 2026\acad.exe",
+                    @"C:\Program Files\Autodesk\AutoCAD 2025\acad.exe",
                     @"C:\Program Files\Autodesk\AutoCAD 2024\acad.exe",
                     @"C:\Program Files\Autodesk\AutoCAD 2023\acad.exe",
                     @"C:\Program Files\Autodesk\AutoCAD 2022\acad.exe",
@@ -43,25 +58,17 @@ namespace LicorpExportPlus.Services
                 {
                     if (File.Exists(path))
                     {
-                        Debug.WriteLine($"[AutoCAD] Found AutoCAD at: {path}");
+                        LicorpTrace.Info($"[AutoCAD] Found AutoCAD at: {path}");
                         return path;
                     }
                 }
 
-                // Try to find from registry
-                var autocadPath = FindAutoCADFromRegistry();
-                if (!string.IsNullOrEmpty(autocadPath) && File.Exists(autocadPath))
-                {
-                    Debug.WriteLine($"[AutoCAD] Found AutoCAD from registry: {autocadPath}");
-                    return autocadPath;
-                }
-
-                Debug.WriteLine("[AutoCAD] AutoCAD not found");
+                LicorpTrace.Warn("[AutoCAD] AutoCAD not found");
                 return null;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[AutoCAD] Error finding AutoCAD: {ex.Message}");
+                LicorpTrace.Warn($"[AutoCAD] Error finding AutoCAD: {ex.Message}");
                 return null;
             }
         }
@@ -70,22 +77,30 @@ namespace LicorpExportPlus.Services
         {
             try
             {
-                using (var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Autodesk\AutoCAD"))
+                foreach (var root in new[] { Registry.LocalMachine, Registry.CurrentUser })
                 {
-                    if (key != null)
+                    foreach (var basePath in new[] { @"SOFTWARE\Autodesk\AutoCAD", @"SOFTWARE\WOW6432Node\Autodesk\AutoCAD" })
                     {
-                        var subKeys = key.GetSubKeyNames().OrderByDescending(k => k).ToList();
-                        foreach (var subKeyName in subKeys)
+                        using (var key = root.OpenSubKey(basePath))
                         {
-                            using (var subKey = key.OpenSubKey(subKeyName))
+                            if (key == null)
                             {
-                                var acadPath = subKey?.GetValue("AcadLocation") as string;
-                                if (!string.IsNullOrEmpty(acadPath))
+                                continue;
+                            }
+
+                            var subKeys = key.GetSubKeyNames().OrderByDescending(k => k).ToList();
+                            foreach (var subKeyName in subKeys)
+                            {
+                                using (var subKey = key.OpenSubKey(subKeyName))
                                 {
-                                    var exePath = Path.Combine(acadPath, "acad.exe");
-                                    if (File.Exists(exePath))
+                                    var acadPath = subKey?.GetValue("AcadLocation") as string;
+                                    if (!string.IsNullOrEmpty(acadPath))
                                     {
-                                        return exePath;
+                                        var exePath = Path.Combine(acadPath, "acad.exe");
+                                        if (File.Exists(exePath))
+                                        {
+                                            return exePath;
+                                        }
                                     }
                                 }
                             }
@@ -95,7 +110,7 @@ namespace LicorpExportPlus.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[AutoCAD] Registry search failed: {ex.Message}");
+                LicorpTrace.Warn($"[AutoCAD] Registry search failed: {ex.Message}");
             }
             return null;
         }
@@ -109,20 +124,20 @@ namespace LicorpExportPlus.Services
             {
                 if (!File.Exists(mainDwgPath))
                 {
-                    Debug.WriteLine($"[AutoCAD Bind] File not found: {mainDwgPath}");
+                    Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] File not found: {mainDwgPath}");
                     return false;
                 }
 
                 var autocadPath = FindAutoCADPath();
                 if (string.IsNullOrEmpty(autocadPath))
                 {
-                    Debug.WriteLine("[AutoCAD Bind] AutoCAD not installed - skipping XREF binding");
+                    Licorp.Diagnostics.LicorpTrace.Dbg("[AutoCAD Bind] AutoCAD not installed - skipping XREF binding");
                     return false;
                 }
 
-                Debug.WriteLine($"[AutoCAD Bind] ========================================");
-                Debug.WriteLine($"[AutoCAD Bind] Starting XREF binding for: {Path.GetFileName(mainDwgPath)}");
-                Debug.WriteLine($"[AutoCAD Bind] Using AutoCAD: {autocadPath}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] ========================================");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] Starting XREF binding for: {Path.GetFileName(mainDwgPath)}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] Using AutoCAD: {autocadPath}");
 
                 // Create AutoCAD script to bind XREFs
                 var scriptPath = CreateBindScript(mainDwgPath);
@@ -142,7 +157,10 @@ namespace LicorpExportPlus.Services
                         File.Delete(scriptPath);
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    LicorpTrace.Warn($"[AutoCAD Bind] Could not delete temporary script '{scriptPath}': {ex.Message}");
+                }
 
                 if (success && deleteXRefFiles)
                 {
@@ -150,15 +168,15 @@ namespace LicorpExportPlus.Services
                     DeleteXRefFiles(mainDwgPath);
                 }
 
-                Debug.WriteLine($"[AutoCAD Bind] ========================================");
-                Debug.WriteLine($"[AutoCAD Bind] Binding completed: {(success ? "SUCCESS" : "FAILED")}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] ========================================");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] Binding completed: {(success ? "SUCCESS" : "FAILED")}");
 
                 return success;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[AutoCAD Bind] ERROR: {ex.Message}");
-                Debug.WriteLine($"[AutoCAD Bind] Stack: {ex.StackTrace}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] ERROR: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] Stack: {ex.StackTrace}");
                 return false;
             }
         }
@@ -197,14 +215,14 @@ namespace LicorpExportPlus.Services
 
                 File.WriteAllText(scriptPath, script.ToString());
 
-                Debug.WriteLine($"[AutoCAD Bind] Script created: {scriptPath}");
-                Debug.WriteLine($"[AutoCAD Bind] Script content:\n{script}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] Script created: {scriptPath}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] Script content:\n{script}");
 
                 return scriptPath;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[AutoCAD Bind] Failed to create script: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] Failed to create script: {ex.Message}");
                 return null;
             }
         }
@@ -225,35 +243,38 @@ namespace LicorpExportPlus.Services
                     WindowStyle = ProcessWindowStyle.Hidden
                 };
 
-                Debug.WriteLine($"[AutoCAD Bind] Starting AutoCAD...");
-                Debug.WriteLine($"[AutoCAD Bind] Command: {autocadPath} {startInfo.Arguments}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] Starting AutoCAD...");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] Command: {autocadPath} {startInfo.Arguments}");
 
                 using (var process = Process.Start(startInfo))
                 {
                     if (process == null)
                     {
-                        Debug.WriteLine("[AutoCAD Bind] Failed to start AutoCAD process");
+                        Licorp.Diagnostics.LicorpTrace.Dbg("[AutoCAD Bind] Failed to start AutoCAD process");
                         return false;
                     }
 
-                    Debug.WriteLine($"[AutoCAD Bind] AutoCAD process started (PID: {process.Id})");
-                    Debug.WriteLine("[AutoCAD Bind] Waiting for AutoCAD to complete binding...");
+                    Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] AutoCAD process started (PID: {process.Id})");
+                    Licorp.Diagnostics.LicorpTrace.Dbg("[AutoCAD Bind] Waiting for AutoCAD to complete binding...");
 
                     // Wait for AutoCAD to finish (max 2 minutes)
                     var completed = process.WaitForExit(120000); // 2 minutes timeout
 
                     if (!completed)
                     {
-                        Debug.WriteLine("[AutoCAD Bind] AutoCAD process timeout - killing process");
+                        Licorp.Diagnostics.LicorpTrace.Dbg("[AutoCAD Bind] AutoCAD process timeout - killing process");
                         try
                         {
                             process.Kill();
                         }
-                        catch { }
+                        catch (Exception killEx)
+                        {
+                            LicorpTrace.Warn($"[AutoCAD Bind] Could not kill timed-out AutoCAD process (PID: {process.Id}): {killEx.Message}");
+                        }
                         return false;
                     }
 
-                    Debug.WriteLine($"[AutoCAD Bind] AutoCAD process completed with exit code: {process.ExitCode}");
+                    Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] AutoCAD process completed with exit code: {process.ExitCode}");
 
                     // Exit code 0 = success
                     return process.ExitCode == 0;
@@ -261,7 +282,7 @@ namespace LicorpExportPlus.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[AutoCAD Bind] Failed to run AutoCAD: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] Failed to run AutoCAD: {ex.Message}");
                 return false;
             }
         }
@@ -276,7 +297,7 @@ namespace LicorpExportPlus.Services
                 var directory = Path.GetDirectoryName(mainDwgPath);
                 var mainFileName = Path.GetFileNameWithoutExtension(mainDwgPath);
 
-                Debug.WriteLine($"[AutoCAD Bind] Looking for XREF files to delete in: {directory}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] Looking for XREF files to delete in: {directory}");
 
                 // Find all DWG files with the same base name (XREFs have suffixes)
                 var allDwgFiles = Directory.GetFiles(directory, "*.dwg");
@@ -296,20 +317,20 @@ namespace LicorpExportPlus.Services
                         {
                             File.Delete(file);
                             deletedCount++;
-                            Debug.WriteLine($"[AutoCAD Bind] ✓ Deleted XREF file: {Path.GetFileName(file)}");
+                            Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] ✓ Deleted XREF file: {Path.GetFileName(file)}");
                         }
                         catch (Exception ex)
                         {
-                            Debug.WriteLine($"[AutoCAD Bind] Could not delete {Path.GetFileName(file)}: {ex.Message}");
+                            Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] Could not delete {Path.GetFileName(file)}: {ex.Message}");
                         }
                     }
                 }
 
-                Debug.WriteLine($"[AutoCAD Bind] Deleted {deletedCount} XREF files");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] Deleted {deletedCount} XREF files");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[AutoCAD Bind] Error deleting XREF files: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[AutoCAD Bind] Error deleting XREF files: {ex.Message}");
             }
         }
 

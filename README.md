@@ -2,6 +2,10 @@
   <img src="docs/images/banner.png" alt="Licorp Export+" width="100%"/>
 </p>
 
+<p align="center">
+  <img src="docs/images/logo.png" alt="Licorp" width="120"/>
+</p>
+
 <h1 align="center">Licorp Export+</h1>
 
 <p align="center">
@@ -505,6 +509,7 @@ dotnet test Source/LicorpExportPlus.Tests/LicorpExportPlus.Tests.csproj
 ---
 
 <p align="center">
+  <img src="docs/images/logo.png" alt="Licorp" width="80"/><br/>
   <b>Made with ❤️ by Licorp</b><br/>
   <sub>Professional BIM Tools for AEC Industry</sub>
 </p>

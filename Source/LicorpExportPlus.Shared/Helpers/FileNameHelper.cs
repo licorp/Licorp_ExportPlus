@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace LicorpExportPlus.Helpers
 {
@@ -21,6 +22,17 @@ namespace LicorpExportPlus.Helpers
             }
 
             string result = sanitized.ToString().Trim();
+            result = result
+                .Replace(":", "_")
+                .Replace(";", "_")
+                .Replace(",", "_")
+                .Replace(" ", "_")
+                .Replace("{", "_")
+                .Replace("}", "_")
+                .Replace("[", "_")
+                .Replace("]", "_");
+
+            result = Regex.Replace(result, "_+", "_").Trim('_');
             result = result.TrimEnd('.');
 
             while (result.Contains("  "))

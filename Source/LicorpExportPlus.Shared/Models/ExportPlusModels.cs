@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using Licorp.Diagnostics;
 using RevitDB = Autodesk.Revit.DB;
 
 namespace LicorpExportPlus.Models
@@ -588,7 +589,13 @@ namespace LicorpExportPlus.Models
         public Dictionary<string, bool> SelectedFormats
         {
             get => _selectedFormats;
-            set { _selectedFormats = value; OnPropertyChanged(); }
+            set
+            {
+                _selectedFormats = value ?? new Dictionary<string, bool>();
+                DisableUnsupportedFormats();
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedFormatsList));
+            }
         }
 
         public bool IsPdfSelected
@@ -599,31 +606,39 @@ namespace LicorpExportPlus.Models
 
         public bool IsDwgSelected
         {
-            get
-            {
-                System.Diagnostics.Debug.WriteLine($"[ExportSettings] IsDwgSelected getter called - _selectedFormats null? {_selectedFormats == null}");
-                if (_selectedFormats == null)
-                {
-                    System.Diagnostics.Debug.WriteLine("[ExportSettings] ❌ _selectedFormats is NULL!");
-                    return false;
-                }
-                bool result = _selectedFormats.ContainsKey("DWG") && _selectedFormats["DWG"];
-                System.Diagnostics.Debug.WriteLine($"[ExportSettings] IsDwgSelected = {result}");
-                return result;
-            }
+            get => _selectedFormats != null && _selectedFormats.ContainsKey("DWG") && _selectedFormats["DWG"];
             set { _selectedFormats["DWG"] = value; OnPropertyChanged(); OnPropertyChanged(nameof(SelectedFormats)); }
         }
 
+        // DGN/DWF are intentionally disabled until real export services are implemented.
         public bool IsDgnSelected
         {
             get => false;
-            set { _selectedFormats["DGN"] = false; OnPropertyChanged(); OnPropertyChanged(nameof(SelectedFormats)); }
+            set
+            {
+                _selectedFormats["DGN"] = false;
+                if (value)
+                {
+                    LicorpTrace.Warn("DGN export is not supported in this build and was ignored.");
+                }
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedFormats));
+            }
         }
 
         public bool IsDwfSelected
         {
             get => false;
-            set { _selectedFormats["DWF"] = false; OnPropertyChanged(); OnPropertyChanged(nameof(SelectedFormats)); }
+            set
+            {
+                _selectedFormats["DWF"] = false;
+                if (value)
+                {
+                    LicorpTrace.Warn("DWF export is not supported in this build and was ignored.");
+                }
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedFormats));
+            }
         }
 
         public bool IsNwcSelected
@@ -688,10 +703,25 @@ namespace LicorpExportPlus.Models
         {
             if (_selectedFormats.ContainsKey(format))
             {
+                if (format == "DGN" || format == "DWF")
+                {
+                    _selectedFormats[format] = false;
+                    LicorpTrace.Warn($"{format} export is not supported in this build and was ignored.");
+                    OnPropertyChanged(nameof(SelectedFormats));
+                    OnPropertyChanged($"Is{format}Selected");
+                    return;
+                }
+
                 _selectedFormats[format] = isSelected;
                 OnPropertyChanged(nameof(SelectedFormats));
                 OnPropertyChanged($"Is{format}Selected");
             }
+        }
+
+        private void DisableUnsupportedFormats()
+        {
+            _selectedFormats["DGN"] = false;
+            _selectedFormats["DWF"] = false;
         }
 
         // INotifyPropertyChanged implementation

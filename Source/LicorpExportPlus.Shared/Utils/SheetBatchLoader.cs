@@ -58,7 +58,7 @@ namespace LicorpExportPlus.Utils
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[SheetBatchLoader] ERROR: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"[SheetBatchLoader] ERROR: {ex.Message}");
             }
         }
 
@@ -74,7 +74,7 @@ namespace LicorpExportPlus.Utils
                 .ToList();
 
             sw.Stop();
-            Debug.WriteLine($"[SheetBatchLoader] Got {collector.Count} sheet IDs in {sw.ElapsedMilliseconds}ms");
+            Licorp.Diagnostics.LicorpTrace.Dbg($"[SheetBatchLoader] Got {collector.Count} sheet IDs in {sw.ElapsedMilliseconds}ms");
 
             // Preload TitleBlock sizes ONCE for all sheets
             SheetSizeDetector.PreloadTitleBlockSizes(doc);
@@ -115,12 +115,12 @@ namespace LicorpExportPlus.Utils
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[SheetBatchLoader] Error loading sheet {elementId}: {ex.Message}");
+                    Licorp.Diagnostics.LicorpTrace.Dbg($"[SheetBatchLoader] Error loading sheet {elementId}: {ex.Message}");
                 }
             }
 
             sw.Stop();
-            Debug.WriteLine($"[SheetBatchLoader] Loaded batch {request.BatchIndex}: {sheetDataList.Count} sheets in {sw.ElapsedMilliseconds}ms");
+            Licorp.Diagnostics.LicorpTrace.Dbg($"[SheetBatchLoader] Loaded batch {request.BatchIndex}: {sheetDataList.Count} sheets in {sw.ElapsedMilliseconds}ms");
 
             var result = new BatchLoadResult
             {
@@ -144,7 +144,7 @@ var collector = new FilteredElementCollector(doc)
                 .ToList();
 
             sw.Stop();
-            Debug.WriteLine($"[SheetBatchLoader] Got {collector.Count} view IDs in {sw.ElapsedMilliseconds}ms");
+            Licorp.Diagnostics.LicorpTrace.Dbg($"[SheetBatchLoader] Got {collector.Count} view IDs in {sw.ElapsedMilliseconds}ms");
 
             var result = new BatchLoadResult
             {
@@ -183,12 +183,12 @@ var collector = new FilteredElementCollector(doc)
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[SheetBatchLoader] Error loading view {elementId}: {ex.Message}");
+                    Licorp.Diagnostics.LicorpTrace.Dbg($"[SheetBatchLoader] Error loading view {elementId}: {ex.Message}");
                 }
             }
 
             sw.Stop();
-            Debug.WriteLine($"[SheetBatchLoader] Loaded batch {request.BatchIndex}: {viewDataList.Count} views in {sw.ElapsedMilliseconds}ms");
+            Licorp.Diagnostics.LicorpTrace.Dbg($"[SheetBatchLoader] Loaded batch {request.BatchIndex}: {viewDataList.Count} views in {sw.ElapsedMilliseconds}ms");
 
             var result = new BatchLoadResult
             {

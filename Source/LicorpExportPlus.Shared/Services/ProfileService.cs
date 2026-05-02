@@ -91,7 +91,7 @@ namespace LicorpExportPlus.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading ExportPlus profile: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"Error loading ExportPlus profile: {ex.Message}");
             }
         }
 
@@ -115,7 +115,7 @@ namespace LicorpExportPlus.Services
             catch (Exception ex)
             {
                 _profiles = CreateDefaultProfiles();
-                System.Diagnostics.Debug.WriteLine($"Error loading profiles: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"Error loading profiles: {ex.Message}");
             }
         }
 
@@ -134,7 +134,7 @@ namespace LicorpExportPlus.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading existing ExportPlus profiles: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"Error loading existing ExportPlus profiles: {ex.Message}");
             }
         }
 
@@ -147,7 +147,7 @@ namespace LicorpExportPlus.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error saving profiles: {ex.Message}");
+                Licorp.Diagnostics.LicorpTrace.Dbg($"Error saving profiles: {ex.Message}");
             }
         }
 
