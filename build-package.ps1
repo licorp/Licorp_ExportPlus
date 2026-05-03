@@ -50,11 +50,19 @@ function Read-BuildMetadata([string]$propsPath) {
     }
 
     [xml]$props = Get-Content -LiteralPath $propsPath
-    $pg = $props.Project.PropertyGroup
+    $pg = $props.Project.PropertyGroup | Select-Object -First 1
+    function Read-Prop([object]$Group, [string]$Name, [string]$Default) {
+        $node = $Group.SelectSingleNode($Name)
+        if ($null -eq $node -or [string]::IsNullOrWhiteSpace($node.InnerText)) {
+            return $Default
+        }
+        return $node.InnerText.Trim()
+    }
+
     return @{
-        AddInId = ($pg.AddInId | ForEach-Object { $_.Trim() })[0]
-        VendorId = ($pg.VendorId | ForEach-Object { $_.Trim() })[0]
-        VendorDescription = ($pg.VendorDescription | ForEach-Object { $_.Trim() })[0]
+        AddInId = Read-Prop $pg "AddInId" "00000000-0000-0000-0000-000000000000"
+        VendorId = Read-Prop $pg "VendorId" "LICORP"
+        VendorDescription = Read-Prop $pg "VendorDescription" "Licorp"
     }
 }
 

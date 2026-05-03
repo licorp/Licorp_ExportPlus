@@ -200,8 +200,8 @@ namespace LicorpExportPlus.Services
 
                 try
                 {
-                    options.AddOption("ExportLinkedFiles", settings.ExportLinkedFiles.ToString());
-                    logCallback?.Invoke($"✓ Export Linked Files: {settings.ExportLinkedFiles}");
+                    options.AddOption("ExportLinkedFiles", settings.ExportLinkedFilesAsSeparateIFCs.ToString());
+                    logCallback?.Invoke($"✓ Export Linked Files: {settings.ExportLinkedFilesAsSeparateIFCs}");
                 }
                 catch (Exception ex)
                 {

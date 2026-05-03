@@ -104,11 +104,10 @@ namespace LicorpExportPlus.Services
                 ifcOptions.ExportBaseQuantities = settings.ExportBaseQuantities;
 
                 var fileName = "ExportedModel.ifc";
-                var filePath = Path.Combine(settings.OutputFolder, fileName);
-
                 _document.Export(settings.OutputFolder, fileName, ifcOptions);
 
                 progress?.Report(100);
+                await Task.Yield();
 
                 return true;
             }

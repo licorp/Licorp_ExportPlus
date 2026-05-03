@@ -20,6 +20,18 @@ namespace LicorpExportPlus.Dialogs
     /// </summary>
     public partial class CustomFileNameDialog : Window, INotifyPropertyChanged
     {
+        private static readonly HashSet<string> HiddenSystemTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "%UserName%",
+            "%ComputerName%",
+            "%Y%",
+            "%m%",
+            "%d%",
+            "%H%",
+            "%M%",
+            "%S%"
+        };
+
         private ObservableCollection<ParameterInfo> _availableParameters = new ObservableCollection<ParameterInfo>();
         private ObservableCollection<ParameterInfo> _filteredParameters = new ObservableCollection<ParameterInfo>();
         private ObservableCollection<SelectedParameterInfo> _selectedParameters = new ObservableCollection<SelectedParameterInfo>();
@@ -370,9 +382,12 @@ namespace LicorpExportPlus.Dialogs
         {
             _filteredParameters.Clear();
 
-            var filtered = string.IsNullOrWhiteSpace(searchText) 
-                ? _availableParameters 
-                : _availableParameters.Where(p => 
+            var visibleParameters = _availableParameters
+                .Where(p => !HiddenSystemTokens.Contains(p.Name));
+
+            var filtered = string.IsNullOrWhiteSpace(searchText)
+                ? visibleParameters
+                : visibleParameters.Where(p =>
                     p.Name.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0 ||
                     p.Category.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0);
 
@@ -592,4 +607,5 @@ namespace LicorpExportPlus.Dialogs
         #endregion
     }
 }
+
 

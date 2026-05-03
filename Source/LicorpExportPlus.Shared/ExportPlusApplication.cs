@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using System.IO;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.UI;
 using Licorp.Diagnostics;
@@ -8,6 +9,7 @@ using LicorpExportPlus.Helpers;
 using ricaun.Revit.DI;
 using ricaun.Revit.UI.Tasks;
 using ricaun.DI;
+using System.Windows.Media.Imaging;
 
 namespace LicorpExportPlus
 {
@@ -100,6 +102,15 @@ namespace LicorpExportPlus
                     assemblyPath,
                     typeof(ExportPlusCommand).FullName);
 
+                var smallIcon = LoadRibbonIcon("export_plus_16.png");
+                var largeIcon = LoadRibbonIcon("export_plus_32.png");
+
+                if (smallIcon != null)
+                    buttonData.Image = smallIcon;
+
+                if (largeIcon != null)
+                    buttonData.LargeImage = largeIcon;
+
                 PushButton pushButton = panel.AddItem(buttonData) as PushButton;
 
                 if (pushButton != null)
@@ -115,6 +126,29 @@ namespace LicorpExportPlus
             else
             {
                 LicorpTrace.Info("ExportPlus button already exists.");
+            }
+        }
+
+        private static BitmapImage LoadRibbonIcon(string fileName)
+        {
+            try
+            {
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                // Load from embedded WPF Resource to avoid deployment path issues.
+                // Resource path is defined by Shared project:
+                //   Source/LicorpExportPlus.Shared/Resources/Icons/*
+                var packUri = $"pack://application:,,,/LicorpExportPlus;component/Resources/Icons/{fileName}";
+                bitmap.UriSource = new Uri(packUri, UriKind.Absolute);
+                bitmap.EndInit();
+                bitmap.Freeze();
+                return bitmap;
+            }
+            catch (Exception ex)
+            {
+                LicorpTrace.Warn($"Failed to load ribbon icon '{fileName}': {ex.Message}");
+                return null;
             }
         }
 

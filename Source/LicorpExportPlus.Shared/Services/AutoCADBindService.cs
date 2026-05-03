@@ -93,13 +93,36 @@ namespace LicorpExportPlus.Services
                             {
                                 using (var subKey = key.OpenSubKey(subKeyName))
                                 {
-                                    var acadPath = subKey?.GetValue("AcadLocation") as string;
-                                    if (!string.IsNullOrEmpty(acadPath))
+                                    if (subKey == null)
                                     {
-                                        var exePath = Path.Combine(acadPath, "acad.exe");
-                                        if (File.Exists(exePath))
+                                        continue;
+                                    }
+
+                                    var directAcadPath = subKey.GetValue("AcadLocation") as string;
+                                    if (!string.IsNullOrEmpty(directAcadPath))
+                                    {
+                                        var directExePath = Path.Combine(directAcadPath, "acad.exe");
+                                        if (File.Exists(directExePath))
                                         {
-                                            return exePath;
+                                            return directExePath;
+                                        }
+                                    }
+
+                                    foreach (var installKeyName in subKey.GetSubKeyNames())
+                                    {
+                                        using (var installKey = subKey.OpenSubKey(installKeyName))
+                                        {
+                                            var acadPath = installKey?.GetValue("AcadLocation") as string;
+                                            if (string.IsNullOrEmpty(acadPath))
+                                            {
+                                                continue;
+                                            }
+
+                                            var exePath = Path.Combine(acadPath, "acad.exe");
+                                            if (File.Exists(exePath))
+                                            {
+                                                return exePath;
+                                            }
                                         }
                                     }
                                 }

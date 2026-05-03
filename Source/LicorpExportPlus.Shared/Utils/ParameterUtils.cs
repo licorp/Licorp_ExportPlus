@@ -135,7 +135,11 @@ namespace LicorpExportPlus.Utils
                         }
                         else if (value is int idInt)
                         {
+#if REVIT2024_OR_GREATER
+                            return param.Set(new ElementId((long)idInt));
+#else
                             return param.Set(new ElementId(idInt));
+#endif
                         }
                         break;
                 }

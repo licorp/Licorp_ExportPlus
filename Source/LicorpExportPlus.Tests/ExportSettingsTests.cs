@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using LicorpExportPlus.Models;
 using NUnit.Framework;
 
@@ -26,6 +27,27 @@ public class ExportSettingsTests
             Assert.That(settings.IsDgnSelected, Is.False);
             Assert.That(settings.IsDwfSelected, Is.False);
         });
+    }
+
+    [Test]
+    public void SelectedFormats_SetterKeepsBindingsSafeWhenKeysAreMissing()
+    {
+        var settings = new ExportSettings
+        {
+            SelectedFormats = new Dictionary<string, bool>
+            {
+                ["PDF"] = true,
+                ["DGN"] = true,
+                ["DWF"] = true
+            }
+        };
+
+        settings.IsDwgSelected = true;
+        settings.IsImgSelected = true;
+
+        var formats = settings.GetSelectedFormatsList();
+
+        Assert.That(formats, Is.EquivalentTo(new[] { "PDF", "DWG", "IMG" }));
     }
 
     [Test]

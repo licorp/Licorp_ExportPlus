@@ -223,7 +223,7 @@ namespace LicorpExportPlus.Models
             _profileName = "Default";
             _outputFolder = "";
             _selectedFormats = new List<string> { "DWG" }; // Only DWG by default
-            _createSeparateFolders = false;
+            _createSeparateFolders = true;
             _paperSize = "Auto";
             _orientation = "Auto";
             _placeCenterDrawing = true;

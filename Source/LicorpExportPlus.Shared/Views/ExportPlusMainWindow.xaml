@@ -102,6 +102,7 @@
             <Setter Property="HorizontalGridLinesBrush" Value="#F0F0F0"/>
             <Setter Property="RowHeight" Value="35"/>
             <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="RowHeaderWidth" Value="0"/>
             <Setter Property="SelectionMode" Value="Extended"/>
             <Setter Property="AlternatingRowBackground" Value="#FAFAFA"/>
         </Style>
@@ -1920,11 +1921,14 @@
                                              Margin="0,0,0,5" 
                                              FontSize="13"
                                              GroupName="SaveOptions"
+                                             IsEnabled="False"
+                                             ToolTip="Disabled: Export+ now always creates one folder per selected format."
                                              Checked="SaveAllFilesRadio_Checked"/>
                                 <RadioButton x:Name="SaveSplitFilesRadio" 
                                              Content="Save and split files by file format" 
                                              FontSize="13"
                                              GroupName="SaveOptions"
+                                             IsChecked="True"
                                              Checked="SaveSplitFilesRadio_Checked"/>
                                 
                                 <!-- Skip Empty Sheets Option -->

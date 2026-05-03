@@ -91,6 +91,7 @@ namespace LicorpExportPlus.Views
         
         // ⚡ Debounce timer for UpdateExportSummary - batch multiple PropertyChanged events
         private DispatcherTimer _summaryUpdateTimer;
+        private bool _isSelectionRefreshScheduled = false;
         
         // ⏱️ CONTINUOUS UI MONITORING: Log every 5 seconds to detect freeze
         private DispatcherTimer _uiMonitorTimer;
@@ -312,32 +313,22 @@ namespace LicorpExportPlus.Views
                             // Apply loaded settings to current IFCSettings
                             IFCSettings = loadedSettings;
                             
-                            // Debug logging removed
-                            System.Windows.MessageBox.Show(
-                                $"IFC setup '{value}' loaded from Revit successfully!",
-                                "Setup Loaded",
-                                System.Windows.MessageBoxButton.OK,
-                                System.Windows.MessageBoxImage.Information);
+                            FilenamePreviewText = $"IFC setup '{value}' loaded.";
+                            LicorpTrace.Info($"IFC setup '{value}' loaded from Revit.");
                         }
                         catch (Exception ex)
                         {
-                            // Debug logging removed
-                            System.Windows.MessageBox.Show(
-                                $"Could not load setup '{value}' from Revit.\n\nError: {ex.Message}",
-                                "Setup Load Error",
-                                System.Windows.MessageBoxButton.OK,
-                                System.Windows.MessageBoxImage.Warning);
+                            FilenamePreviewText = $"Could not load IFC setup '{value}': {ex.Message}";
+                            LicorpTrace.Warn($"Could not load IFC setup '{value}': {ex.Message}");
                         }
                     }
                 }
             }
         }
         
-        // IFC Setup Configuration Paths (mapping setup name to file path)
-        private Dictionary<string, string> _ifcSetupConfigPaths;
-        
         // Export Queue Items for Create tab
         private ObservableCollection<ExportQueueItem> _exportQueueItems;
+        private bool _isUpdatingExportQueue;
         private string _filenamePreviewText = "Select sheets/views and formats to preview output names.";
 
         public string FilenamePreviewText
@@ -460,6 +451,7 @@ namespace LicorpExportPlus.Views
             
             // Initialize output folder to Desktop
             OutputFolder = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            ExportSettings.CreateSeparateFolders = true;
             // Debug logging removed
             
             // Initialize Export Queue with empty collection
@@ -542,8 +534,14 @@ namespace LicorpExportPlus.Views
             };
             _summaryUpdateTimer.Tick += (s, e) =>
             {
-                // Debug logging removed
                 _summaryUpdateTimer.Stop();
+
+                if (!_isSelectionRefreshScheduled)
+                {
+                    return;
+                }
+
+                _isSelectionRefreshScheduled = false;
                 
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 UpdateStatusText();
@@ -994,13 +992,43 @@ namespace LicorpExportPlus.Views
         {
             if (e.PropertyName == "IsSelected")
             {
-                // Debug logging removed
-                
-                // Restart timer on each PropertyChanged event
-                _summaryUpdateTimer.Stop();
-                _summaryUpdateTimer.Start();
-                
+                // ⚡ Performance: skip per-item UI work during bulk checkbox updates
+                if (_isBulkUpdatingCheckboxes)
+                {
+                    return;
+                }
+
+                ScheduleSelectionRefresh();
             }
+        }
+
+        private void ForceSelectionRefresh()
+        {
+            if (_summaryUpdateTimer == null)
+            {
+                UpdateStatusText();
+                UpdateExportSummary();
+                return;
+            }
+
+            _isSelectionRefreshScheduled = false;
+            _summaryUpdateTimer.Stop();
+            UpdateStatusText();
+            UpdateExportSummary();
+        }
+
+        private void ScheduleSelectionRefresh()
+        {
+            if (_summaryUpdateTimer == null)
+            {
+                UpdateStatusText();
+                UpdateExportSummary();
+                return;
+            }
+
+            _isSelectionRefreshScheduled = true;
+            _summaryUpdateTimer.Stop();
+            _summaryUpdateTimer.Start();
         }
         
         /// <summary>
@@ -1051,7 +1079,6 @@ namespace LicorpExportPlus.Views
             
             // ⚡⚡⚡ CRITICAL: Set cancel flag NGAY LẬP TỨC để dừng loading
             _cancelLoading = true;
-            _isLoadingSheets = false;
             // Debug logging removed
             
             // ⚡ KHÔNG chặn đóng form - để user tắt ngay
@@ -1210,7 +1237,6 @@ namespace LicorpExportPlus.Views
 
         // ⚡ ASYNC LOADING: Use RevitAsyncHelper instead of DispatcherTimer
         private const int SHEET_CHUNK_SIZE = 50; // ⚡ Tăng lên 50 để ít lần delay hơn
-        private bool _isLoadingSheets = false;
         private bool _cancelLoading = false; // ⚡ Flag để cancel loading khi đóng form
         
         // ✅ Throttle scroll events (từ RevitScheduleEditor)
@@ -1439,11 +1465,9 @@ namespace LicorpExportPlus.Views
                 _sheetsLoaded = true;
                 _ = LoadSheetDetailsInBatchesAsync();
                 UpdateStatusText();
-                _isLoadingSheets = false;
             }
             catch (Exception ex)
             {
-                _isLoadingSheets = false;
                 LicorpTrace.Warn($"Sheet load failed: {ex.Message}");
                 MessageBox.Show($"Error loading sheets: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -2347,7 +2371,7 @@ namespace LicorpExportPlus.Views
                 var viewIds = sheet.GetAllPlacedViews();
                 if (viewIds == null || viewIds.Count == 0)
                 {
-                    return (true, "⚠️ No RevitView placed on this sheet");
+                    return (false, null);
                 }
                 return (false, null);
             }
@@ -3117,6 +3141,11 @@ namespace LicorpExportPlus.Views
         {
             if (e.PropertyName == "IsSelected")
             {
+                if (_isBulkUpdatingCheckboxes)
+                {
+                    return;
+                }
+
                 var viewItem = sender as ViewItem;
                 if (viewItem == null) return;
                 
@@ -3130,8 +3159,7 @@ namespace LicorpExportPlus.Views
                         ExportSettings.IsIfcSelected = true;
                 }
                 
-                UpdateStatusText();
-                UpdateExportSummary();
+                ScheduleSelectionRefresh();
             }
         }
 
@@ -3386,6 +3414,10 @@ namespace LicorpExportPlus.Views
             {
                 var selectedCount = SelectedSheetsCount;
                 var selectedFormats = ExportSettings?.GetSelectedFormatsList() ?? new List<string>();
+                if (selectedFormats.Count == 0 && EnsureDefaultFormatForCurrentSelection())
+                {
+                    selectedFormats = ExportSettings?.GetSelectedFormatsList() ?? new List<string>();
+                }
                 var estimatedFiles = selectedCount * selectedFormats.Count;
 
                 // Update export settings with current selection count
@@ -3410,13 +3442,23 @@ namespace LicorpExportPlus.Views
         /// </summary>
         private void UpdateExportQueue()
         {
+            if (_isUpdatingExportQueue)
+            {
+                return;
+            }
+
             try
             {
+                _isUpdatingExportQueue = true;
                 if (ExportQueueItems == null) return;
 
                 ExportQueueItems.Clear();
 
                 var selectedFormats = ExportSettings?.GetSelectedFormatsList() ?? new List<string>();
+                if (selectedFormats.Count == 0 && EnsureDefaultFormatForCurrentSelection())
+                {
+                    selectedFormats = ExportSettings?.GetSelectedFormatsList() ?? new List<string>();
+                }
                 
                 // DEBUG: Log chi tiết format states
                 // Debug logging removed
@@ -3430,101 +3472,28 @@ namespace LicorpExportPlus.Views
                 if (selectedFormats.Count == 0)
                 {
                     // Debug logging removed
+                    FilenamePreviewText = "Select sheets/views and at least one export format.";
                     return;
                 }
                 
                 // Debug logging removed
 
-                // Add selected sheets to queue (only PDF/DWG formats, skip NWC/IFC)
-                if (Sheets != null)
+                foreach (var queueItem in ExportQueueBuilder.BuildSheetItems(
+                    Sheets,
+                    selectedFormats,
+                    GetSheetSize,
+                    GetSheetOrientation,
+                    BuildQueueOutputPath))
                 {
-                    var selectedSheets = Sheets.Where(s => s.IsSelected).ToList();
-                    // Debug logging removed
-                    
-                    foreach (var sheet in selectedSheets)
-                    {
-                        foreach (var format in selectedFormats)
-                        {
-                            // Sheets only support PDF/DWG/DWF/IMG, skip NWC/IFC
-                            var formatUpper = format.ToUpper();
-                            if (formatUpper == "NWC" || formatUpper == "IFC")
-                            {
-                                // Debug logging removed
-                                continue;
-                            }
-                            
-                            // Determine display name: use CustomFileName if available, else SheetName
-                            string displayName = sheet.SheetName;
-                            if (!string.IsNullOrWhiteSpace(sheet.CustomFileName))
-                            {
-                                displayName = sheet.CustomFileName;
-                            }
-                            
-                            var queueItem = new ExportQueueItem
-                            {
-                                IsSelected = true,
-                                ViewSheetNumber = sheet.SheetNumber,
-                                ViewSheetName = displayName,
-                                Format = format.ToUpper(),
-                                Size = GetSheetSize(sheet),
-                                Orientation = GetSheetOrientation(sheet),
-                                OutputPath = BuildQueueOutputPath(displayName, format),
-                                Progress = 0,
-                                Status = "Pending"
-                            };
-                            ExportQueueItems.Add(queueItem);
-                        }
-                    }
+                    ExportQueueItems.Add(queueItem);
                 }
 
-                // Add selected views to queue
-                if (Views != null)
+                foreach (var queueItem in ExportQueueBuilder.BuildViewItems(
+                    Views,
+                    selectedFormats,
+                    BuildQueueOutputPath))
                 {
-                    var selectedViews = Views.Where(v => v.IsSelected).ToList();
-                    // Debug logging removed
-                    
-                    foreach (var RevitView in selectedViews)
-                    {
-                        bool is3DView = RevitView.ViewType != null && 
-                                       (RevitView.ViewType.Contains("ThreeD") || RevitView.ViewType.Contains("3D"));
-                        
-                        
-                        foreach (var format in selectedFormats)
-                        {
-                            var formatUpper = format.ToUpper();
-                            
-                            if (is3DView && (formatUpper == "PDF" || formatUpper == "DWG" || formatUpper == "DWF" || formatUpper == "IMG"))
-                            {
-                                continue;
-                            }
-                            
-                            if (!is3DView && (formatUpper == "NWC" || formatUpper == "IFC"))
-                            {
-                                continue;
-                            }
-                            
-                            string displayName = RevitView.ViewName;
-                            if (!string.IsNullOrWhiteSpace(RevitView.CustomFileName))
-                            {
-                                displayName = RevitView.CustomFileName;
-                            }
-                            
-                            var queueItem = new ExportQueueItem
-                            {
-                                IsSelected = true,
-                                ViewSheetNumber = RevitView.ViewType,
-                                ViewSheetName = displayName,
-                                Format = format.ToUpper(),
-                                Size = "-",
-                                Orientation = "-",
-                                OutputPath = BuildQueueOutputPath(displayName, format),
-                                Progress = 0,
-                                Status = "Pending"
-                            };
-                            ExportQueueItems.Add(queueItem);
-                            // Debug logging removed
-                        }
-                    }
+                    ExportQueueItems.Add(queueItem);
                 }
 
                 // Debug logging removed
@@ -3543,8 +3512,45 @@ namespace LicorpExportPlus.Views
             }
             catch (Exception ex)
             {
-                // Debug logging removed
+                var message = $"Could not build export queue: {ex.Message}";
+                FilenamePreviewText = message;
+                LicorpTrace.Warn(message);
             }
+            finally
+            {
+                _isUpdatingExportQueue = false;
+            }
+        }
+
+        private bool EnsureDefaultFormatForCurrentSelection()
+        {
+            if (ExportSettings == null)
+            {
+                return false;
+            }
+
+            var hasSelectedSheets = Sheets?.Any(s => s.IsSelected) == true;
+            var selectedViews = Views?.Where(v => v.IsSelected).ToList() ?? new List<ViewItem>();
+            var hasSelectedViews = selectedViews.Count > 0;
+            if (!hasSelectedSheets && !hasSelectedViews)
+            {
+                return false;
+            }
+
+            var has3DViews = selectedViews.Any(v =>
+                v.ViewType != null &&
+                (v.ViewType.Contains("ThreeD") || v.ViewType.Contains("3D")));
+
+            if (hasSelectedSheets || !has3DViews)
+            {
+                ExportSettings.IsPdfSelected = true;
+                LicorpTrace.Info("No export format selected. PDF was enabled by default for the current selection.");
+                return true;
+            }
+
+            ExportSettings.IsNwcSelected = true;
+            LicorpTrace.Info("No export format selected. NWC was enabled by default for the selected 3D views.");
+            return true;
         }
 
         private void ExportQueueItems_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
@@ -3554,10 +3560,28 @@ namespace LicorpExportPlus.Views
 
         private string BuildQueueOutputPath(string baseName, string format)
         {
-            var folder = GetResolvedOutputFolder();
+            var folder = GetFormatOutputFolder(format, createIfMissing: false);
             var extension = GetExtensionForFormat(format);
             var fileName = FileNameGenerator.SanitizeFileName(baseName ?? "Export");
             return Path.Combine(folder, $"{fileName}{extension}");
+        }
+
+        private string GetFormatOutputFolder(string format, bool createIfMissing = true)
+        {
+            var baseFolder = GetResolvedOutputFolder();
+            var formatFolderName = FileNameGenerator.SanitizeFileName((format ?? "Export").ToUpperInvariant());
+            if (string.IsNullOrWhiteSpace(formatFolderName))
+            {
+                formatFolderName = "Export";
+            }
+
+            var folder = Path.Combine(baseFolder, formatFolderName);
+            if (createIfMissing && !Directory.Exists(folder))
+            {
+                Directory.CreateDirectory(folder);
+            }
+
+            return folder;
         }
 
         private string GetResolvedOutputFolder()
@@ -3609,7 +3633,7 @@ namespace LicorpExportPlus.Views
                             ? ExportSettings.CombineCustomFileName
                             : $"{pdfItems.First().ViewSheetNumber}_to_{pdfItems.Last().ViewSheetNumber}_Combined";
 
-                        FilenamePreviewText = $"Combined PDF: {Path.Combine(GetResolvedOutputFolder(), FileNameGenerator.SanitizeFileName(combinedName) + ".pdf")} | Order: {string.Join(", ", pdfItems.Select(i => i.ViewSheetNumber))}";
+                        FilenamePreviewText = $"Combined PDF: {Path.Combine(GetFormatOutputFolder("PDF", createIfMissing: false), FileNameGenerator.SanitizeFileName(combinedName) + ".pdf")} | Order: {string.Join(", ", pdfItems.Select(i => i.ViewSheetNumber))}";
                         return;
                     }
                 }
@@ -3708,25 +3732,38 @@ namespace LicorpExportPlus.Views
             const int BATCH_SIZE = 50;
             int processed = 0;
 
-            foreach (var sheet in items)
+            // ⚡ Bulk mode: prevent heavy per-item callbacks while toggling many rows
+            _isBulkUpdatingCheckboxes = true;
+
+            try
             {
-                if (sheet == null)
+                foreach (var sheet in items)
                 {
-                    continue;
-                }
+                    if (sheet == null)
+                    {
+                        continue;
+                    }
 
-                if (sheet.IsSelected != selectAll)
-                {
-                    sheet.IsSelected = selectAll;
-                }
+                    if (sheet.IsSelected != selectAll)
+                    {
+                        sheet.IsSelected = selectAll;
+                    }
 
-                processed++;
+                    processed++;
 
-                if (processed % BATCH_SIZE == 0)
-                {
-                    await Dispatcher.Yield(DispatcherPriority.Background);
+                    if (processed % BATCH_SIZE == 0)
+                    {
+                        await Dispatcher.Yield(DispatcherPriority.Background);
+                    }
                 }
             }
+            finally
+            {
+                _isBulkUpdatingCheckboxes = false;
+            }
+
+            // Single consolidated updates after bulk change
+            ForceSelectionRefresh();
         }
 
         private async Task ApplyViewSelectionAsync(IEnumerable<ViewItem> items, bool selectAll)
@@ -3739,25 +3776,38 @@ namespace LicorpExportPlus.Views
             const int BATCH_SIZE = 50;
             int processed = 0;
 
-            foreach (var RevitView in items)
+            // ⚡ Bulk mode: prevent heavy per-item callbacks while toggling many rows
+            _isBulkUpdatingCheckboxes = true;
+
+            try
             {
-                if (RevitView == null)
+                foreach (var RevitView in items)
                 {
-                    continue;
-                }
+                    if (RevitView == null)
+                    {
+                        continue;
+                    }
 
-                if (RevitView.IsSelected != selectAll)
-                {
-                    RevitView.IsSelected = selectAll;
-                }
+                    if (RevitView.IsSelected != selectAll)
+                    {
+                        RevitView.IsSelected = selectAll;
+                    }
 
-                processed++;
+                    processed++;
 
-                if (processed % BATCH_SIZE == 0)
-                {
-                    await Dispatcher.Yield(DispatcherPriority.Background);
+                    if (processed % BATCH_SIZE == 0)
+                    {
+                        await Dispatcher.Yield(DispatcherPriority.Background);
+                    }
                 }
             }
+            finally
+            {
+                _isBulkUpdatingCheckboxes = false;
+            }
+
+            // Single consolidated updates after bulk change
+            ForceSelectionRefresh();
         }
 
         private async void ToggleAll_Click(object sender, RoutedEventArgs e)
@@ -3769,8 +3819,6 @@ namespace LicorpExportPlus.Views
                 bool selectAll = !Sheets.All(s => s.IsSelected);
                 await ApplySheetSelectionAsync(Sheets, selectAll);
                 // Debug logging removed
-                UpdateStatusText();
-                UpdateExportSummary();
             }
         }
 
@@ -4008,8 +4056,9 @@ Tiếp tục xuất file?";
                 ResetAddinAfterExport();
                 _exportJustCompleted = false;
             }
-            
-            UpdateStatusText();
+
+            // Debounce heavy UI/queue refresh while user is selecting ranges (Shift/Ctrl)
+            ScheduleSelectionRefresh();
         }
 
         // New event handlers for enhanced UI
@@ -4098,9 +4147,9 @@ Tiếp tục xuất file?";
                 ResetAddinAfterExport();
                 _exportJustCompleted = false;
             }
-            
-            UpdateStatusText();
-            UpdateExportSummary(); // This will call UpdateExportQueue()
+
+            // Debounce heavy UI/queue refresh while user is selecting ranges (Shift/Ctrl)
+            ScheduleSelectionRefresh();
         }
 
         /// <summary>
@@ -4580,8 +4629,7 @@ Tiếp tục xuất file?";
                 }
             }
             
-            UpdateStatusText();
-            UpdateExportSummary();
+            ForceSelectionRefresh();
         }
 
         private async void SelectAllCheckBox_Unchecked(object sender, RoutedEventArgs e)
@@ -4640,8 +4688,6 @@ Tiếp tục xuất file?";
             if (Sheets != null)
             {
                 await ApplySheetSelectionAsync(Sheets, false);
-                UpdateStatusText();
-                UpdateExportSummary();
             }
         }
 
@@ -4677,8 +4723,7 @@ Tiếp tục xuất file?";
             var checkbox = sender as CheckBox;
             if (checkbox == null)
             {
-                UpdateStatusText();
-                UpdateExportSummary();
+                ScheduleSelectionRefresh();
                 return;
             }
 
@@ -4686,8 +4731,7 @@ Tiếp tục xuất file?";
             var clickedView = checkbox.DataContext as ViewItem;
             if (clickedView == null)
             {
-                UpdateStatusText();
-                UpdateExportSummary();
+                ScheduleSelectionRefresh();
                 return;
             }
 
@@ -4713,7 +4757,7 @@ Tiếp tục xuất file?";
                         foreach (var item in ViewsDataGrid.SelectedItems)
                         {
                             var view = item as ViewItem;
-                            if (view != null)
+                            if (view != null && view.IsSelected != newState)
                             {
                                 view.IsSelected = newState;
                             }
@@ -4730,8 +4774,7 @@ Tiếp tục xuất file?";
             }
             
             // Call update methods only once at the end
-            UpdateStatusText();
-            UpdateExportSummary();
+            ForceSelectionRefresh();
         }
 
         private void SheetCheckBox_Click(object sender, RoutedEventArgs e)
@@ -4748,8 +4791,7 @@ Tiếp tục xuất file?";
             var checkbox = sender as CheckBox;
             if (checkbox == null)
             {
-                UpdateStatusText();
-                UpdateExportSummary();
+                ScheduleSelectionRefresh();
                 return;
             }
 
@@ -4757,8 +4799,7 @@ Tiếp tục xuất file?";
             var clickedSheet = checkbox.DataContext as SheetItem;
             if (clickedSheet == null)
             {
-                UpdateStatusText();
-                UpdateExportSummary();
+                ScheduleSelectionRefresh();
                 return;
             }
 
@@ -4785,7 +4826,7 @@ Tiếp tục xuất file?";
                         foreach (var item in SheetsDataGrid.SelectedItems)
                         {
                             var sheet = item as SheetItem;
-                            if (sheet != null)
+                            if (sheet != null && sheet.IsSelected != newState)
                             {
                                 sheet.IsSelected = newState;
                             }
@@ -4802,8 +4843,7 @@ Tiếp tục xuất file?";
             }
             
             // Call update methods only once at the end
-            UpdateStatusText();
-            UpdateExportSummary();
+            ForceSelectionRefresh();
         }
 
         #region Profile Manager Methods - MOVED TO ExportPlusMainWindow.Profiles.cs
@@ -4859,6 +4899,10 @@ Tiếp tục xuất file?";
                 }
                 
                 UpdateNavigationButtons();
+                if (selectedIndex == 2)
+                {
+                    UpdateExportSummary();
+                }
                 
                 // Debug logging removed
             }
@@ -5882,9 +5926,19 @@ Tiếp tục xuất file?";
                     return;
                 }
 
+                // Rebuild from the latest Selection/Formats state right before export.
+                // This protects the Create tab from stale UI events or delayed checkbox binding updates.
+                UpdateExportQueue();
+                ExportQueueDataGrid?.Items.Refresh();
+
                 // Validate export queue has items
-                if (ExportQueueDataGrid.Items.Count == 0)
+                var queueCount = ExportQueueItems?.Count ?? 0;
+                if (queueCount == 0)
                 {
+                    var selectedSheets = Sheets?.Count(s => s.IsSelected) ?? 0;
+                    var selectedViews = Views?.Count(v => v.IsSelected) ?? 0;
+                    var selectedFormats = ExportSettings?.GetSelectedFormatsList() ?? new List<string>();
+                    LicorpTrace.Warn($"Export queue is empty before export. Selected sheets: {selectedSheets}, selected views: {selectedViews}, selected formats: {string.Join(",", selectedFormats)}.");
                     MessageBox.Show("Export queue is empty. Please select items to export from the Selection tab.", 
                                    "Empty Queue", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
@@ -5918,6 +5972,27 @@ Tiếp tục xuất file?";
                     
                     var items = ExportQueueDataGrid.Items.Cast<ExportQueueItem>().ToList();
                     var totalItems = items.Count;
+                    Action updateOverallProgress = () =>
+                    {
+                        if (totalItems <= 0)
+                        {
+                            ExportProgressBar.Value = 0;
+                            ProgressPercentageText.Text = "Completed 0%";
+                            return;
+                        }
+
+                        var completedItems = items.Count(i => i.Status == "Completed");
+                        var processingItems = items.Where(i => i.Status == "Processing" || i.Status.Contains("External Event"));
+                        double progressSum = completedItems;
+                        foreach (var processingItem in processingItems)
+                        {
+                            progressSum += Math.Max(0.0, Math.Min(1.0, processingItem.Progress / 100.0));
+                        }
+
+                        var overallProgress = Math.Max(0.0, Math.Min(100.0, (progressSum * 100.0) / totalItems));
+                        ExportProgressBar.Value = overallProgress;
+                        ProgressPercentageText.Text = $"Completed {overallProgress:F1}%";
+                    };
                     
                     // Get selected sheets and views from Selection tab
                     var selectedSheets = Sheets?.Where(s => s.IsSelected).ToList() ?? new List<SheetItem>();
@@ -5950,18 +6025,12 @@ Tiếp tục xuất file?";
                     {
                         // Debug logging removed
                         
-                        // ✅ Determine output path: create subfolder if CreateSeparateFolders is enabled
-                        string formatOutputFolder = outputFolder;
-                        if (ExportSettings?.CreateSeparateFolders == true)
-                        {
-                            formatOutputFolder = System.IO.Path.Combine(outputFolder, format.ToUpper());
-                            System.IO.Directory.CreateDirectory(formatOutputFolder);
-                            // Debug logging removed
-                        }
+                        // Always split exports by format: PDF, DWG, IFC, NWC, DXF, IMG, XML...
+                        string formatOutputFolder = GetFormatOutputFolder(format);
 
                         foreach (var queueItem in items.Where(i => string.Equals(i.Format, format, StringComparison.OrdinalIgnoreCase)))
                         {
-                            queueItem.OutputPath = formatOutputFolder;
+                            queueItem.OutputPath = BuildQueueOutputPath(queueItem.ViewSheetName, queueItem.Format);
                             queueItem.ErrorMessage = string.Empty;
                             queueItem.CompletedAt = string.Empty;
                         }
@@ -6002,7 +6071,7 @@ Tiếp tục xuất file?";
                                                 // File has been created and renamed - mark as completed
                                                 queueItem.Status = "Completed";
                                                 queueItem.Progress = 100;
-                                                queueItem.OutputPath = formatOutputFolder;
+                                                queueItem.OutputPath = BuildQueueOutputPath(queueItem.ViewSheetName, queueItem.Format);
                                                 queueItem.CompletedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                                                 completedCount++;
                                                 // Debug logging removed
@@ -6021,16 +6090,7 @@ Tiếp tục xuất file?";
                                         
                                         // Update overall progress based on completed + processing items
                                         // Each completed item counts as 1.0, each processing item counts as its percentage (0.0 - 0.99)
-                                        var completedItems = items.Count(i => i.Status == "Completed");
-                                        var processingItems = items.Where(i => i.Status == "Processing");
-                                        double progressSum = completedItems;
-                                        foreach (var item in processingItems)
-                                        {
-                                            progressSum += (item.Progress / 100.0); // Add fractional progress
-                                        }
-                                        var overallProgress = (progressSum * 100.0) / totalItems;
-                                        ExportProgressBar.Value = overallProgress;
-                                        ProgressPercentageText.Text = $"Completed {overallProgress:F1}%";
+                                        updateOverallProgress();
                                         
                                         // Debug logging removed
                                     });
@@ -6127,9 +6187,29 @@ Tiếp tục xuất file?";
                                             var sheet = _document.GetElement(sheetItem.Id) as Autodesk.Revit.DB.ViewSheet;
                                             if (sheet != null)
                                             {
+                                                // Mark this queue item as Processing BEFORE export starts
+                                                var dwgProcessingItem = ExportQueueItems.FirstOrDefault(q =>
+                                                    q.ViewSheetNumber == sheet.SheetNumber && q.Format.ToUpper() == "DWG");
+                                                if (dwgProcessingItem != null)
+                                                {
+                                                    dwgProcessingItem.Status = "Processing";
+                                                    dwgProcessingItem.Progress = 1;
+                                                    dwgProcessingItem.OutputPath = BuildQueueOutputPath(dwgProcessingItem.ViewSheetName, dwgProcessingItem.Format);
+                                                    dwgProcessingItem.ErrorMessage = string.Empty;
+                                                    dwgProcessingItem.CompletedAt = string.Empty;
+                                                    ExportQueueDataGrid.Items.Refresh();
+                                                    updateOverallProgress();
+                                                }
+
+                                                // Allow WPF to render Processing state in realtime
+                                                await Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
+
                                                 // Debug logging removed
                                                 
-                                                var result = dwgManager.ExportToDWG(new List<Autodesk.Revit.DB.ViewSheet> { sheet }, dwgSettings);
+                                                var result = dwgManager.ExportToDWG(
+                                                    new List<Autodesk.Revit.DB.ViewSheet> { sheet },
+                                                    dwgSettings,
+                                                    s => sheetItem.CustomFileName);
                                                 
                                                 if (result)
                                                 {
@@ -6144,11 +6224,12 @@ Tiếp tục xuất file?";
                                                         {
                                                             queueItem.Progress = 100;
                                                             queueItem.Status = "Completed";
-                                                            queueItem.OutputPath = formatOutputFolder;
+                                                            queueItem.OutputPath = BuildQueueOutputPath(queueItem.ViewSheetName, queueItem.Format);
                                                             queueItem.CompletedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                                                             
                                                             // CRITICAL: Force DataGrid refresh
                                                             ExportQueueDataGrid.Items.Refresh();
+                                                            updateOverallProgress();
                                                         }
                                                     });
                                                     
@@ -6167,11 +6248,12 @@ Tiếp tục xuất file?";
                                                         {
                                                             queueItem.Status = "Failed";
                                                             queueItem.Progress = 0;
-                                                            queueItem.OutputPath = formatOutputFolder;
+                                                            queueItem.OutputPath = BuildQueueOutputPath(queueItem.ViewSheetName, queueItem.Format);
                                                             queueItem.ErrorMessage = "DWG export returned false.";
                                                             
                                                             // CRITICAL: Force DataGrid refresh
                                                             ExportQueueDataGrid.Items.Refresh();
+                                                            updateOverallProgress();
                                                         }
                                                     });
                                                     
@@ -6188,8 +6270,10 @@ Tiếp tục xuất file?";
                                             {
                                                 queueItem.Status = "Failed";
                                                 queueItem.Progress = 0;
-                                                queueItem.OutputPath = formatOutputFolder;
+                                                queueItem.OutputPath = BuildQueueOutputPath(queueItem.ViewSheetName, queueItem.Format);
                                                 queueItem.ErrorMessage = ex.Message;
+                                                ExportQueueDataGrid.Items.Refresh();
+                                                updateOverallProgress();
                                             }
                                         }
                                     }
@@ -6268,7 +6352,7 @@ Tiếp tục xuất file?";
                                             {
                                                 queueItem.Status = success ? "Completed" : "Failed";
                                                 queueItem.Progress = success ? 100 : 0;
-                                                queueItem.OutputPath = formatOutputFolder;
+                                                queueItem.OutputPath = BuildQueueOutputPath(queueItem.ViewSheetName, queueItem.Format);
                                                 queueItem.CompletedAt = success ? DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") : string.Empty;
                                                 queueItem.ErrorMessage = success ? string.Empty : "IFC export failed.";
                                                 
@@ -6278,16 +6362,7 @@ Tiếp tục xuất file?";
                                             }
                                             
                                             // Update overall progress based on actual completion
-                                            var completedItems = items.Count(i => i.Status == "Completed");
-                                            var processingItems = items.Where(i => i.Status == "Processing");
-                                            double progressSum = completedItems;
-                                            foreach (var item in processingItems)
-                                            {
-                                                progressSum += (item.Progress / 100.0);
-                                            }
-                                            var overallProgress = (progressSum * 100.0) / totalItems;
-                                            ExportProgressBar.Value = overallProgress;
-                                            ProgressPercentageText.Text = $"Completed {overallProgress:F1}%";
+                                            updateOverallProgress();
                                         });
                                     };
                                     
@@ -6333,7 +6408,7 @@ Tiếp tục xuất file?";
                                         {
                                             ifcItem.Status = "Failed";
                                             ifcItem.Progress = 0;
-                                            ifcItem.OutputPath = formatOutputFolder;
+                                            ifcItem.OutputPath = BuildQueueOutputPath(ifcItem.ViewSheetName, ifcItem.Format);
                                             ifcItem.ErrorMessage = "IFC external event was denied.";
                                         }
                                         ExportQueueDataGrid.Items.Refresh();
@@ -6349,7 +6424,7 @@ Tiếp tục xuất file?";
                                         {
                                             ifcItem.Status = "Failed";
                                             ifcItem.Progress = 0;
-                                            ifcItem.OutputPath = formatOutputFolder;
+                                            ifcItem.OutputPath = BuildQueueOutputPath(ifcItem.ViewSheetName, ifcItem.Format);
                                             ifcItem.ErrorMessage = "IFC external event timed out.";
                                         }
                                         ExportQueueDataGrid.Items.Refresh();
@@ -6403,7 +6478,7 @@ Tiếp tục xuất file?";
                                         {
                                             queueItem.Status = success ? "Completed" : "Failed";
                                             queueItem.Progress = success ? 100 : 0;
-                                            queueItem.OutputPath = formatOutputFolder;
+                                            queueItem.OutputPath = BuildQueueOutputPath(queueItem.ViewSheetName, queueItem.Format);
                                             queueItem.CompletedAt = success ? DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") : string.Empty;
                                             queueItem.ErrorMessage = success ? string.Empty : "NWC export failed.";
                                             
@@ -6413,16 +6488,7 @@ Tiếp tục xuất file?";
                                         }
                                         
                                         // Update overall progress based on actual completion
-                                        var completedItems = items.Count(i => i.Status == "Completed");
-                                        var processingItems = items.Where(i => i.Status == "Processing");
-                                        double progressSum = completedItems;
-                                        foreach (var item in processingItems)
-                                        {
-                                            progressSum += (item.Progress / 100.0);
-                                        }
-                                        var overallProgress = (progressSum * 100.0) / totalItems;
-                                        ExportProgressBar.Value = overallProgress;
-                                        ProgressPercentageText.Text = $"Completed {overallProgress:F1}%";
+                                        updateOverallProgress();
                                     });
                                 });
                                 
@@ -6491,8 +6557,20 @@ Tiếp tục xuất file?";
                             {
                                 // Debug logging removed
                                 
-                                // ⚠️ REMOVED: Don't set all items to Processing/0% upfront
-                                // Callback will set each item to Processing when export starts
+                                // DXF export service runs batch export; mark relevant items as Processing first
+                                foreach (var dxfItem in items.Where(i => i.Format == "DXF"))
+                                {
+                                    dxfItem.Status = "Processing";
+                                    dxfItem.Progress = 1;
+                                    dxfItem.OutputPath = BuildQueueOutputPath(dxfItem.ViewSheetName, dxfItem.Format);
+                                    dxfItem.ErrorMessage = string.Empty;
+                                    dxfItem.CompletedAt = string.Empty;
+                                }
+                                ExportQueueDataGrid.Items.Refresh();
+                                updateOverallProgress();
+
+                                // Allow WPF to render Processing state before running heavy DXF export
+                                await Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
                                 
                                 try
                                 {
@@ -6501,7 +6579,7 @@ Tiếp tục xuất file?";
                                     // Create DXF export settings from UI  
                                     var dxfSettings = new PSDXFExportSettings
                                     {
-                                        OutputFolder = outputFolder,
+                                        OutputFolder = formatOutputFolder,
                                         ExportAllViews = false, // Use specific views
                                         Export3DViews = true,
                                         ExportPlanViews = true,
@@ -6513,7 +6591,7 @@ Tiếp tục xuất file?";
                                     // Debug logging removed
                                     
                                     // Export all views at once
-                                    var result = dxfManager.ExportViewsToDXF(outputFolder, dxfSettings);
+                                    var result = dxfManager.ExportViewsToDXF(formatOutputFolder, dxfSettings);
                                     
                                     if (result)
                                     {
@@ -6526,10 +6604,11 @@ Tiếp tục xuất file?";
                                             {
                                                 dxfItem.Progress = 100;
                                                 dxfItem.Status = "Completed";
-                                                dxfItem.OutputPath = formatOutputFolder;
+                                                dxfItem.OutputPath = BuildQueueOutputPath(dxfItem.ViewSheetName, dxfItem.Format);
                                                 dxfItem.CompletedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                                             }
                                             ExportQueueDataGrid.Items.Refresh();
+                                            updateOverallProgress();
                                         });
                                     }
                                     else
@@ -6543,10 +6622,11 @@ Tiếp tục xuất file?";
                                             {
                                                 dxfItem.Status = "Failed";
                                                 dxfItem.Progress = 0;
-                                                dxfItem.OutputPath = formatOutputFolder;
+                                                dxfItem.OutputPath = BuildQueueOutputPath(dxfItem.ViewSheetName, dxfItem.Format);
                                                 dxfItem.ErrorMessage = "DXF export returned false.";
                                             }
                                             ExportQueueDataGrid.Items.Refresh();
+                                            updateOverallProgress();
                                         });
                                     }
                                 }
@@ -6562,10 +6642,12 @@ Tiếp tục xuất file?";
                                         foreach (var dxfItem in items.Where(i => i.Format == "DXF"))
                                         {
                                             dxfItem.Status = "Failed";
-                                            dxfItem.OutputPath = formatOutputFolder;
+                                            dxfItem.Progress = 0;
+                                            dxfItem.OutputPath = BuildQueueOutputPath(dxfItem.ViewSheetName, dxfItem.Format);
                                             dxfItem.ErrorMessage = ex.Message;
                                         }
                                         ExportQueueDataGrid.Items.Refresh();
+                                        updateOverallProgress();
                                     });
                                 }
                             }
@@ -6577,9 +6659,12 @@ Tiếp tục xuất file?";
                                 foreach (var dxfItem in items.Where(i => i.Format == "DXF"))
                                 {
                                     dxfItem.Status = "Skipped";
-                                    dxfItem.OutputPath = formatOutputFolder;
+                                    dxfItem.Progress = 0;
+                                    dxfItem.OutputPath = BuildQueueOutputPath(dxfItem.ViewSheetName, dxfItem.Format);
                                     dxfItem.ErrorMessage = "No valid views were available for DXF export.";
                                 }
+                                ExportQueueDataGrid.Items.Refresh();
+                                updateOverallProgress();
                             }
                         }
                         else if (format.ToUpper() == "DGN" || format.ToUpper() == "DWF")
@@ -6588,10 +6673,11 @@ Tiếp tục xuất file?";
                             {
                                 unsupportedItem.Status = "Skipped";
                                 unsupportedItem.Progress = 0;
-                                unsupportedItem.OutputPath = formatOutputFolder;
+                                unsupportedItem.OutputPath = BuildQueueOutputPath(unsupportedItem.ViewSheetName, unsupportedItem.Format);
                                 unsupportedItem.ErrorMessage = $"{format.ToUpper()} export is not enabled in this build.";
                             }
                             ExportQueueDataGrid.Items.Refresh();
+                            updateOverallProgress();
                         }
                         else
                         {
@@ -6623,12 +6709,10 @@ Tiếp tục xuất file?";
                     }
                     else
                     {
-                        // Calculate actual progress based on completed items
+                        // Calculate actual progress from completed + fractional processing items
+                        updateOverallProgress();
                         var completedItems = items.Count(i => i.Status == "Completed");
                         var processingItems = items.Count(i => i.Status.Contains("Processing") || i.Status.Contains("External Event"));
-                        var actualProgress = (completedItems * 100.0) / items.Count;
-                        ExportProgressBar.Value = actualProgress;
-                        ProgressPercentageText.Text = $"Completed {actualProgress:F0}%";
                         // Debug logging removed
                         
                         // Only show message if there are no items still processing (e.g., IFC via ExternalEvent)
@@ -7609,14 +7693,14 @@ Tiếp tục xuất file?";
                 // Update ExportSettings
                 if (ExportSettings != null)
                 {
-                    ExportSettings.CreateSeparateFolders = false;
+                    ExportSettings.CreateSeparateFolders = true;
                     // Debug logging removed
                 }
                 
                 // Update Profile
                 if (_profileManager?.CurrentProfile?.Settings != null)
                 {
-                    _profileManager.CurrentProfile.Settings.SaveAllInSameFolder = true;
+                    _profileManager.CurrentProfile.Settings.SaveAllInSameFolder = false;
                 }
             }
             catch (Exception ex)
@@ -8707,6 +8791,12 @@ Tiếp tục xuất file?";
         */
     }
 }
+
+
+
+
+
+
 
 
 

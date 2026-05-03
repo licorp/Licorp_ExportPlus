@@ -138,7 +138,7 @@ namespace LicorpExportPlus.Models
 
         // Create Settings
         public string OutputFolder { get; set; } = @"D:\\OneDrive\\Desktop\\";
-        public bool SaveAllInSameFolder { get; set; } = true;
+        public bool SaveAllInSameFolder { get; set; } = false;
         public string ReportType { get; set; } = "Don't Save Report";
         public bool SchedulingEnabled { get; set; } = false;
         public DateTime ScheduleStartDate { get; set; } = DateTime.Now;

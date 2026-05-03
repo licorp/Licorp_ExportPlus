@@ -59,9 +59,9 @@ namespace LicorpExportPlus.Services
                     LicorpTrace.Info("Disabling all XREF export options");
 
                     TrySetProperty(options, "ExportingAreas", false);
-                    TrySetProperty(options, "MergedViews", settings.CompactDwgFiles);
+                    TrySetProperty(options, "MergedViews", true);
                     TrySetProperty(options, "ExportOfSolids", RevitDB.SolidGeometry.Polymesh);
-                    TrySetProperty(options, "TargetUnit", RevitDB.ExportUnit.Default);
+                    TrySetTargetUnit(options);
 
                     var acaPrefType = typeof(RevitDB.DWGExportOptions).Assembly
                         .GetTypes()
@@ -73,9 +73,7 @@ namespace LicorpExportPlus.Services
                         LicorpTrace.Dbg("Set ACAPreference = Geometry");
                     }
 
-                LicorpTrace.Info(settings.CompactDwgFiles
-                    ? "DWG compact mode enabled - sheet views will be merged into self-contained DWG files"
-                    : "DWG compact mode disabled - Revit may create companion XREF files");
+                LicorpTrace.Info("DWG compact mode enabled - sheet views will be merged into self-contained DWG files");
                 }
                 else
                 {
@@ -84,7 +82,7 @@ namespace LicorpExportPlus.Services
                 }
 
                 options.FileVersion = GetDWGVersion(settings.DWGVersion);
-                options.SharedCoords = settings.UseSharedCoordinates;
+                options.SharedCoords = settings.ExportViewsOnSheets && settings.UseSharedCoordinates;
 
                 TrySetProperty(options, "HideScopeBox", settings.HideScopeBox);
                 TrySetProperty(options, "HideReferencePlane", settings.HideReferencePlane);
@@ -118,13 +116,13 @@ namespace LicorpExportPlus.Services
             LicorpTrace.Dbg("Creating default DWG options");
 
             options.FileVersion = GetDWGVersion(settings.DWGVersion);
-            options.SharedCoords = settings.UseSharedCoordinates;
+            options.SharedCoords = settings.ExportViewsOnSheets && settings.UseSharedCoordinates;
 
             if (!settings.ExportViewsOnSheets)
             {
                 LicorpTrace.Info("Disabling XREF export");
                 TrySetProperty(options, "ExportingAreas", false);
-                TrySetProperty(options, "MergedViews", settings.CompactDwgFiles);
+                TrySetProperty(options, "MergedViews", true);
                 TrySetProperty(options, "ExportOfSolids", RevitDB.SolidGeometry.Polymesh);
 
                 var acaPrefType = typeof(RevitDB.DWGExportOptions).Assembly
@@ -141,7 +139,9 @@ namespace LicorpExportPlus.Services
                 TrySetProperty(options, "ExportingAreas", true);
             }
 
-            TrySetProperty(options, "Colors", GetEnumValue("ExportColorMode", "TrueColorPerView"));
+            TrySetTargetUnit(options);
+            TrySetProperty(options, "Colors", GetEnumValue("ExportColorMode", "IndexColors"));
+            TrySetProperty(options, "LineScaling", GetEnumValue("LineScaling", "ViewScale"));
 
             return options;
         }
@@ -151,7 +151,10 @@ namespace LicorpExportPlus.Services
             return ReflectionHelper.TryGetEnumValueByShortName(typeof(RevitDB.DWGExportOptions).Assembly, enumTypeName, valueName);
         }
 
-        public bool ExportToDWG(List<RevitDB.ViewSheet> sheets, PSDWGExportSettings settings)
+        public bool ExportToDWG(
+            List<RevitDB.ViewSheet> sheets,
+            PSDWGExportSettings settings,
+            Func<RevitDB.ViewSheet, string> customFileNameResolver = null)
         {
             try
             {
@@ -172,7 +175,10 @@ namespace LicorpExportPlus.Services
                     {
                         LicorpTrace.Info($"Processing: {sheet.SheetNumber} - {sheet.Name}");
 
-                        string fileName = GenerateDiRootsFileName(sheet);
+                        string customName = customFileNameResolver?.Invoke(sheet);
+                        string fileName = !string.IsNullOrWhiteSpace(customName)
+                            ? FileNameHelper.SanitizeFileName(customName)
+                            : GenerateDiRootsFileName(sheet);
                         LicorpTrace.Dbg($"Generated filename: {fileName}");
 
                         var outputPath = settings.CreateSubfolders
@@ -187,6 +193,11 @@ namespace LicorpExportPlus.Services
 
                         ICollection<RevitDB.ElementId> sheetOnly = new List<RevitDB.ElementId> { sheet.Id };
 
+                        string fullPath = Path.Combine(outputPath, fileName + ".dwg");
+                        string pcpPath = Path.Combine(outputPath, fileName + ".pcp");
+                        DeleteExportOutputIfExists(fullPath);
+                        DeleteExportOutputIfExists(pcpPath);
+
                         bool success = _document.Export(outputPath, fileName, sheetOnly, dwgOptions);
 
                         if (success)
@@ -194,7 +205,6 @@ namespace LicorpExportPlus.Services
                             successCount++;
                             LicorpTrace.Add($"DWG created: {outputPath}\\{fileName}.dwg");
 
-                            string fullPath = Path.Combine(outputPath, fileName + ".dwg");
                             if (File.Exists(fullPath))
                             {
                                 FileInfo fi = new FileInfo(fullPath);
@@ -227,6 +237,8 @@ namespace LicorpExportPlus.Services
                                 {
                                     LicorpTrace.Info($"Final: {Path.GetFileName(fullPath)} - {finalFi.Length / 1024} KB");
                                 }
+
+                                DeleteExportOutputIfExists(pcpPath);
                             }
                             else
                             {
@@ -276,10 +288,10 @@ namespace LicorpExportPlus.Services
             LicorpTrace.Dbg("Creating sheet-only DWG options");
 
             TrySetProperty(options, "ExportingAreas", false);
-            TrySetProperty(options, "MergedViews", settings.CompactDwgFiles);
-            LicorpTrace.Info(settings.CompactDwgFiles
-                ? "DWG compact mode enabled: MergedViews = true"
-                : "DWG compact mode disabled: MergedViews = false");
+            // Same strategy as Licorp_Combi CAD: sheet DWGs should be self-contained.
+            // Revit creates companion XREF DWGs when sheet views are not merged.
+            TrySetProperty(options, "MergedViews", true);
+            LicorpTrace.Info("DWG compact mode enabled: MergedViews = true (self-contained sheet DWG)");
 
             options.SharedCoords = false;
             LicorpTrace.Dbg("SharedCoords = FALSE (prevent view splitting)");
@@ -298,15 +310,7 @@ namespace LicorpExportPlus.Services
                 TrySetProperty(options, "ACAPreference", geometryValue);
             }
 
-            try
-            {
-                var targetUnit = Enum.Parse(typeof(RevitDB.ExportUnit), "Millimeter");
-                TrySetProperty(options, "TargetUnit", targetUnit);
-            }
-            catch
-            {
-                TrySetProperty(options, "TargetUnit", RevitDB.ExportUnit.Default);
-            }
+            TrySetTargetUnit(options);
 
             TrySetProperty(options, "Colors", GetEnumValue("ExportColorMode", "IndexColors"));
             TrySetProperty(options, "LineScaling", GetEnumValue("LineScaling", "ViewScale"));
@@ -319,6 +323,40 @@ namespace LicorpExportPlus.Services
             LicorpTrace.Info($"DWG options configured - FileVersion: {options.FileVersion}");
 
             return options;
+        }
+
+        private static void DeleteExportOutputIfExists(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return;
+            }
+
+            try
+            {
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                    LicorpTrace.Dbg($"Deleted existing DWG export output: {path}");
+                }
+            }
+            catch (Exception ex)
+            {
+                LicorpTrace.Warn($"Could not delete existing DWG export output '{path}': {ex.Message}");
+            }
+        }
+
+        private void TrySetTargetUnit(RevitDB.DWGExportOptions options)
+        {
+            try
+            {
+                var targetUnit = Enum.Parse(typeof(RevitDB.ExportUnit), "Millimeter");
+                TrySetProperty(options, "TargetUnit", targetUnit);
+            }
+            catch
+            {
+                TrySetProperty(options, "TargetUnit", RevitDB.ExportUnit.Default);
+            }
         }
 
         private RevitDB.ACADVersion GetDWGVersion(string version)

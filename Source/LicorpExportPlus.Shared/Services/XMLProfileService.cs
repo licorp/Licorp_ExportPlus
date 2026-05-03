@@ -341,6 +341,7 @@ IsSelected = true
             if (xmlProfile.TemplateInfo.IsIFCChecked) profile.SelectedFormats.Add("IFC");
             if (xmlProfile.TemplateInfo.IsIMGChecked) profile.SelectedFormats.Add("JPG");
             if (xmlProfile.TemplateInfo.IsNWCChecked) profile.SelectedFormats.Add("NWC");
+            profile.SelectedFormats = ExportFormatSupport.FilterSupported(profile.SelectedFormats).ToList();
 
             return profile;
         }

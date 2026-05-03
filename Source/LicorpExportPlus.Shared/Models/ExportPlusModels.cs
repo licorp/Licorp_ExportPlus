@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using Licorp.Diagnostics;
+using LicorpExportPlus.Utils;
 using RevitDB = Autodesk.Revit.DB;
 
 namespace LicorpExportPlus.Models
@@ -313,7 +314,7 @@ namespace LicorpExportPlus.Models
         private List<SelectedParameterInfo> _combineFileNameParameters = new List<SelectedParameterInfo>(); // Parameter-based filename for combined PDF
         private PSQualityType _quality = PSQualityType.High;
         private bool _includeRevision = true;
-        private bool _createSeparateFolders = false;
+        private bool _createSeparateFolders = true;
         private PSPaperPlacement _paperPlacement = PSPaperPlacement.Center;
         private PSPaperMargin _paperMargin = PSPaperMargin.NoMargin;
         private double _offsetX = 0.0;
@@ -601,13 +602,13 @@ namespace LicorpExportPlus.Models
         public bool IsPdfSelected
         {
             get => _selectedFormats.ContainsKey("PDF") && _selectedFormats["PDF"];
-            set { _selectedFormats["PDF"] = value; OnPropertyChanged(); OnPropertyChanged(nameof(SelectedFormats)); }
+            set { SetFormatFlag("PDF", value); OnPropertyChanged(); OnPropertyChanged(nameof(SelectedFormats)); }
         }
 
         public bool IsDwgSelected
         {
             get => _selectedFormats != null && _selectedFormats.ContainsKey("DWG") && _selectedFormats["DWG"];
-            set { _selectedFormats["DWG"] = value; OnPropertyChanged(); OnPropertyChanged(nameof(SelectedFormats)); }
+            set { SetFormatFlag("DWG", value); OnPropertyChanged(); OnPropertyChanged(nameof(SelectedFormats)); }
         }
 
         // DGN/DWF are intentionally disabled until real export services are implemented.
@@ -616,7 +617,7 @@ namespace LicorpExportPlus.Models
             get => false;
             set
             {
-                _selectedFormats["DGN"] = false;
+                SetFormatFlag("DGN", false);
                 if (value)
                 {
                     LicorpTrace.Warn("DGN export is not supported in this build and was ignored.");
@@ -631,7 +632,7 @@ namespace LicorpExportPlus.Models
             get => false;
             set
             {
-                _selectedFormats["DWF"] = false;
+                SetFormatFlag("DWF", false);
                 if (value)
                 {
                     LicorpTrace.Warn("DWF export is not supported in this build and was ignored.");
@@ -644,25 +645,25 @@ namespace LicorpExportPlus.Models
         public bool IsNwcSelected
         {
             get => _selectedFormats.ContainsKey("NWC") && _selectedFormats["NWC"];
-            set { _selectedFormats["NWC"] = value; OnPropertyChanged(); OnPropertyChanged(nameof(SelectedFormats)); }
+            set { SetFormatFlag("NWC", value); OnPropertyChanged(); OnPropertyChanged(nameof(SelectedFormats)); }
         }
 
         public bool IsIfcSelected
         {
             get => _selectedFormats.ContainsKey("IFC") && _selectedFormats["IFC"];
-            set { _selectedFormats["IFC"] = value; OnPropertyChanged(); OnPropertyChanged(nameof(SelectedFormats)); }
+            set { SetFormatFlag("IFC", value); OnPropertyChanged(); OnPropertyChanged(nameof(SelectedFormats)); }
         }
 
         public bool IsDxfSelected
         {
             get => _selectedFormats.ContainsKey("DXF") && _selectedFormats["DXF"];
-            set { _selectedFormats["DXF"] = value; OnPropertyChanged(); OnPropertyChanged(nameof(SelectedFormats)); }
+            set { SetFormatFlag("DXF", value); OnPropertyChanged(); OnPropertyChanged(nameof(SelectedFormats)); }
         }
 
         public bool IsImgSelected
         {
             get => _selectedFormats.ContainsKey("IMG") && _selectedFormats["IMG"];
-            set { _selectedFormats["IMG"] = value; OnPropertyChanged(); OnPropertyChanged(nameof(SelectedFormats)); OnPropertyChanged(nameof(IsImageSelected)); }
+            set { SetFormatFlag("IMG", value); OnPropertyChanged(); OnPropertyChanged(nameof(SelectedFormats)); OnPropertyChanged(nameof(IsImageSelected)); }
         }
 
         // Alias for XAML binding compatibility
@@ -688,7 +689,7 @@ namespace LicorpExportPlus.Models
             var formats = new List<string>();
             foreach (var format in _selectedFormats)
             {
-                if (format.Key == "DGN" || format.Key == "DWF")
+                if (ExportFormatSupport.IsUnsupported(format.Key))
                 {
                     continue;
                 }
@@ -701,18 +702,20 @@ namespace LicorpExportPlus.Models
 
         public void SetFormatSelection(string format, bool isSelected)
         {
+            format = ExportFormatSupport.Normalize(format);
+
             if (_selectedFormats.ContainsKey(format))
             {
-                if (format == "DGN" || format == "DWF")
+                if (ExportFormatSupport.IsUnsupported(format))
                 {
-                    _selectedFormats[format] = false;
+                    SetFormatFlag(format, false);
                     LicorpTrace.Warn($"{format} export is not supported in this build and was ignored.");
                     OnPropertyChanged(nameof(SelectedFormats));
                     OnPropertyChanged($"Is{format}Selected");
                     return;
                 }
 
-                _selectedFormats[format] = isSelected;
+                SetFormatFlag(format, isSelected);
                 OnPropertyChanged(nameof(SelectedFormats));
                 OnPropertyChanged($"Is{format}Selected");
             }
@@ -720,8 +723,13 @@ namespace LicorpExportPlus.Models
 
         private void DisableUnsupportedFormats()
         {
-            _selectedFormats["DGN"] = false;
-            _selectedFormats["DWF"] = false;
+            ExportFormatSupport.DisableUnsupported(_selectedFormats);
+        }
+
+        private void SetFormatFlag(string format, bool value)
+        {
+            _selectedFormats ??= new Dictionary<string, bool>();
+            _selectedFormats[ExportFormatSupport.Normalize(format)] = value;
         }
 
         // INotifyPropertyChanged implementation
