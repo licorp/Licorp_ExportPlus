@@ -175,8 +175,7 @@ var collector = new FilteredElementCollector(doc)
                     {
                         ElementId = view.Id,
                         ViewName = view.Name ?? "NO_name",
-                        ViewType = view.ViewType.ToString(),
-                        ViewScale = GetViewScale(view)
+                        ViewType = view.ViewType.ToString()
                     };
 
                     viewDataList.Add(data);
@@ -223,18 +222,6 @@ var collector = new FilteredElementCollector(doc)
             catch
             {
                 return "";
-            }
-        }
-
-        private string GetViewScale(Autodesk.Revit.DB.View view)
-        {
-            try
-            {
-                return $"1:{view.Scale}";
-            }
-            catch
-            {
-                return "NTS";
             }
         }
 
@@ -303,6 +290,5 @@ var collector = new FilteredElementCollector(doc)
         public ElementId ElementId { get; set; }
         public string ViewName { get; set; }
         public string ViewType { get; set; }
-        public string ViewScale { get; set; }
     }
 }

@@ -2481,8 +2481,6 @@ namespace LicorpExportPlus.Views
             var existingCustomNames = Views?.Where(v => !string.IsNullOrEmpty(v.ViewId))
                                             .ToDictionary(v => v.ViewId, v => v.CustomFileName)
                                      ?? new Dictionary<string, string>();
-            var viewportNumbers = BuildViewportNumberCache();
-
             var viewIds = new FilteredElementCollector(_document)
                 .OfCategory(BuiltInCategory.OST_Views)
                 .WhereElementIsNotElementType()
@@ -2511,10 +2509,9 @@ namespace LicorpExportPlus.Views
                         RevitView = view,
                         RevitViewId = view.Id,
                         ViewId = viewId,
-                        ViewNumber = viewportNumbers.TryGetValue(view.Id, out var number) ? number : "",
                         ViewName = viewName,
                         ViewType = ConvertViewTypeToString(view.ViewType),
-                        Scale = "",
+                        Scale = NormalizeViewScale(view.Scale),
                         DetailLevel = "",
                         Discipline = "",
                         ViewInfo = "",
@@ -2532,60 +2529,42 @@ namespace LicorpExportPlus.Views
             return views;
         }
 
+        /// <summary>
+        /// Determines whether a Revit view can be listed/exported in Export+.
+        /// </summary>
         private bool IsExportableView(RevitView view)
         {
-            return view != null &&
-                   !view.IsTemplate &&
-                   view.ViewType != ViewType.DrawingSheet &&
-                   view.ViewType != ViewType.ProjectBrowser &&
-                   view.ViewType != ViewType.SystemBrowser &&
-                   view.CanBePrinted;
+            if (view == null || view.IsTemplate)
+            {
+                return false;
+            }
+
+            // Exclude internal/non-exportable view types
+            switch (view.ViewType)
+            {
+                case ViewType.ProjectBrowser:
+                case ViewType.SystemBrowser:
+                case ViewType.Internal:
+                case ViewType.Undefined:
+                    return false;
+                default:
+                    return true;
+            }
         }
 
-        private Dictionary<ElementId, string> BuildViewportNumberCache()
+        private string NormalizeViewScale(int scaleValue)
         {
-            var result = new Dictionary<ElementId, string>();
+            if (scaleValue <= 0)
+                return "N/A";
 
-            try
+            int[] standardScales =
             {
-                var viewports = new FilteredElementCollector(_document)
-                    .OfClass(typeof(Viewport))
-                    .Cast<Viewport>();
+                1, 2, 5, 10, 20, 25, 50, 75, 100, 125, 150, 200, 250, 500, 1000
+            };
 
-                var hasDetailNumberParameter = Enum.TryParse("VIEWPORT_DETAIL_NUMBER", out BuiltInParameter detailNumberParameter);
-
-                foreach (var viewport in viewports)
-                {
-                    try
-                    {
-                        var viewId = viewport.ViewId;
-                        if (result.ContainsKey(viewId)) continue;
-
-                        string number = null;
-                        if (hasDetailNumberParameter)
-                        {
-                            number = viewport.get_Parameter(detailNumberParameter)?.AsString();
-                        }
-
-                        if (string.IsNullOrWhiteSpace(number))
-                        {
-                            number = viewport.LookupParameter("Detail Number")?.AsString();
-                        }
-
-                        result[viewId] = number ?? "";
-                    }
-                    catch
-                    {
-                        // Ignore individual viewport failures; the view can still load.
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                LicorpTrace.Warn($"Viewport number cache failed: {ex.Message}");
-            }
-
-            return result;
+            return standardScales.Contains(scaleValue)
+                ? $"1:{scaleValue}"
+                : "Custom";
         }
 
         private async Task LoadViewDetailsInBatchesAsync()
@@ -2706,8 +2685,7 @@ namespace LicorpExportPlus.Views
                         ElementId = elementId,
                         ViewId = view.Id.ToString(),
                         ViewName = view.Name ?? "NO_NAME",
-                        ViewType = view.ViewType.ToString(),
-                        ViewScale = view.Scale.ToString()
+                        ViewType = view.ViewType.ToString()
                     };
                     
                     viewDataList.Add(data);
@@ -2875,7 +2853,6 @@ namespace LicorpExportPlus.Views
             public string ViewId { get; set; }
             public string ViewName { get; set; }
             public string ViewType { get; set; }
-            public string ViewScale { get; set; } // ⚡ NEW: For fast extraction
             public string Scale { get; set; }
             public string DetailLevel { get; set; }
             public string Discipline { get; set; }
@@ -2930,7 +2907,9 @@ namespace LicorpExportPlus.Views
             try
             {
                 Parameter scaleParam = view.get_Parameter(BuiltInParameter.VIEW_SCALE);
-                data.Scale = scaleParam != null && scaleParam.HasValue ? $"1:{scaleParam.AsInteger()}" : "N/A";
+                data.Scale = scaleParam != null && scaleParam.HasValue
+                    ? NormalizeViewScale(scaleParam.AsInteger())
+                    : "N/A";
                 
                 data.DetailLevel = view.DetailLevel.ToString();
                 
@@ -3031,7 +3010,7 @@ namespace LicorpExportPlus.Views
                     ViewId = data.ViewId,
                     ViewName = data.ViewName,
                     ViewType = data.ViewType,
-                    Scale = data.ViewScale,
+                    Scale = data.Scale,
                     DetailLevel = "Not Loaded", // Lazy load
                     Discipline = "Not Loaded",  // Lazy load
                     CustomFileName = customFileName,
@@ -4579,7 +4558,6 @@ Tiếp tục xuất file?";
             {
                 var filtered = Views.Where(v =>
                     (string.IsNullOrWhiteSpace(normalizedSearch) ||
-                     (v.ViewNumber?.ToLower().Contains(normalizedSearch) ?? false) ||
                      (v.ViewName?.ToLower().Contains(normalizedSearch) ?? false) ||
                      (v.ViewType?.ToLower().Contains(normalizedSearch) ?? false) ||
                      (v.CustomFileName?.ToLower().Contains(normalizedSearch) ?? false)))
@@ -7057,8 +7035,16 @@ Tiếp tục xuất file?";
                         UpdateExportQueue();
                         // Debug logging removed
                         
-                        MessageBox.Show($"Successfully applied custom filename to ALL {updatedCount} view(s).", 
-                                       "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                        if (updatedCount > 0)
+                        {
+                            MessageBox.Show($"Successfully applied custom filename to ALL {updatedCount} view(s).", 
+                                           "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                        else
+                        {
+                            MessageBox.Show("No views were updated. Please check selected parameters and ensure view data is loaded.",
+                                           "No Updates", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        }
                     }
                 }
             }
@@ -7116,7 +7102,20 @@ Tiếp tục xuất file?";
                 try
                 {
                     // Get the actual RevitView element
-                    var view = _document.GetElement(viewItem.ViewId) as RevitView;
+                    RevitView view = null;
+
+                    // Prefer ElementId to avoid string id conversion issues
+                    if (viewItem.RevitViewId != null)
+                    {
+                        view = _document.GetElement(viewItem.RevitViewId) as RevitView;
+                    }
+
+                    // Backward compatibility fallback: try parse ViewId string
+                    if (view == null && !string.IsNullOrWhiteSpace(viewItem.ViewId) && int.TryParse(viewItem.ViewId, out int viewIdValue))
+                    {
+                        view = _document.GetElement(new ElementId(viewIdValue)) as RevitView;
+                    }
+
                     if (view == null) continue;
                     
                     // Generate custom filename from parameters
@@ -8791,6 +8790,24 @@ Tiếp tục xuất file?";
         */
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
