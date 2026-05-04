@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using System.IO;
 using Autodesk.Revit.Attributes;
 using Autodesk.Revit.UI;
 using Licorp.Diagnostics;
@@ -20,6 +19,7 @@ namespace LicorpExportPlus
         private static readonly string AddInName = typeof(ExportPlusApplication).Namespace;
         private static readonly string TabName = "Licorp";
         private static readonly string PanelName = "Export";
+        private const string ButtonName = "ExportPlus";
 
         private static RevitTaskService _revitTaskService;
         public static IRevitTask RevitTask => _revitTaskService;
@@ -40,13 +40,10 @@ namespace LicorpExportPlus
             {
                 using var startupScope = RevitExecutionScope.Create();
 
-                Container = new Container();
-                Container.AddRevitSingleton(application);
+                Container = CreateContainer(application);
                 LicorpTrace.Info("DI Container created.");
 
-                _revitTaskService = new RevitTaskService(application);
-                _revitTaskService.Initialize();
-                Container.AddSingleton<IRevitTask>(_revitTaskService);
+                _revitTaskService = InitializeRevitTaskService(application, Container);
                 LicorpTrace.Info("RevitTaskService initialized.");
 
                 CreateRibbonTab(application);
@@ -66,8 +63,24 @@ namespace LicorpExportPlus
         {
             LicorpTrace.Info("ExportPlusApplication shutting down...");
             _revitTaskService?.Dispose();
+            _revitTaskService = null;
             LicorpTrace.Info("OnShutdown completed.");
             return Result.Succeeded;
+        }
+
+        private static Container CreateContainer(UIControlledApplication application)
+        {
+            var container = new Container();
+            container.AddRevitSingleton(application);
+            return container;
+        }
+
+        private static RevitTaskService InitializeRevitTaskService(UIControlledApplication application, Container container)
+        {
+            var revitTaskService = new RevitTaskService(application);
+            revitTaskService.Initialize();
+            container.AddSingleton<IRevitTask>(revitTaskService);
+            return revitTaskService;
         }
 
         private void CreateRibbonTab(UIControlledApplication application)
@@ -91,13 +104,13 @@ namespace LicorpExportPlus
                 panel = application.CreateRibbonPanel(TabName, PanelName);
             }
 
-            if (!panel.GetItems().Any(item => item.Name == "ExportPlus"))
+            if (!panel.GetItems().Any(item => item.Name == ButtonName))
             {
                 string assemblyPath = Assembly.GetExecutingAssembly().Location;
                 LicorpTrace.Dbg($"Assembly path: {assemblyPath}");
 
                 PushButtonData buttonData = new PushButtonData(
-                    "ExportPlus",
+                    ButtonName,
                     "Export+",
                     assemblyPath,
                     typeof(ExportPlusCommand).FullName);
