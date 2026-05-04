@@ -6,10 +6,11 @@ namespace LicorpExportPlus
 {
     public static class Logger
     {
+        private const string AppName = "ExportPlus";
         private static readonly string LogFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Licorp",
-            "ExportPlus",
+            AppName,
             "Logs"
         );
 
@@ -26,6 +27,7 @@ namespace LicorpExportPlus
 
             _logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
+                .Enrich.WithProperty("Application", AppName)
                 .WriteTo.File(logFile, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 30)
                 .CreateLogger();
         }

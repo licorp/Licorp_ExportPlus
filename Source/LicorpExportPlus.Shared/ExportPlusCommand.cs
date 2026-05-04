@@ -10,13 +10,23 @@ namespace LicorpExportPlus
     public class ExportPlusCommand : IExternalCommand
     {
         private static ExportPlusMainWindow _window;
+        private const string NoActiveDocumentMessage = "Không tìm thấy tài liệu Revit đang mở.";
 
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
             try
             {
                 var uiApp = commandData.Application;
-                var doc = uiApp.ActiveUIDocument.Document;
+                var uiDoc = uiApp.ActiveUIDocument;
+
+                if (uiDoc == null)
+                {
+                    message = NoActiveDocumentMessage;
+                    LicorpTrace.Warn($"ExportPlusCommand blocked: {NoActiveDocumentMessage}");
+                    return Result.Cancelled;
+                }
+
+                var doc = uiDoc.Document;
                 
                 if (_window == null || !_window.IsLoaded)
                 {
@@ -31,12 +41,12 @@ namespace LicorpExportPlus
 
                 return Result.Succeeded;
             }
-        catch (System.Exception ex)
-        {
-            LicorpTrace.Error("ExportPlusCommand failed", ex);
-            message = ex.Message;
-            return Result.Failed;
-        }
+            catch (System.Exception ex)
+            {
+                LicorpTrace.Error("ExportPlusCommand failed", ex);
+                message = ex.Message;
+                return Result.Failed;
+            }
         }
     }
 }
