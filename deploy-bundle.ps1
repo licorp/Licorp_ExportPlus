@@ -82,7 +82,9 @@ function Copy-FolderContents([string]$Source, [string]$Destination) {
     }
 
     New-Item -ItemType Directory -Path $Destination -Force | Out-Null
-    Get-ChildItem -LiteralPath $Source -Force | ForEach-Object {
+    Get-ChildItem -LiteralPath $Source -Force | Where-Object {
+        $_.Name -notin @("publish", "obj")
+    } | ForEach-Object {
         Copy-Item -LiteralPath $_.FullName -Destination $Destination -Recurse -Force
     }
 }

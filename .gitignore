@@ -12,6 +12,7 @@ x86/
 *.user
 *.userosscache
 *.sln.docstates
+*_wpftmp.csproj
 
 # NuGet
 packages/
