@@ -171,6 +171,13 @@ namespace LicorpExportPlus.Dialogs
                 {
                     Licorp.Diagnostics.LicorpTrace.Dbg("Loading parameters from document...");
                     LoadParametersFromDocument();
+
+                    // ProSheets-like behavior for Views:
+                    // only keep parameters that actually have values in at least one printable view.
+                    if (_isViewMode)
+                    {
+                        FilterAvailableParametersByViewData();
+                    }
                 }
                 else
                 {
@@ -305,6 +312,141 @@ namespace LicorpExportPlus.Dialogs
                 Licorp.Diagnostics.LicorpTrace.Dbg($"ERROR in LoadParametersFromDocument: {ex.Message}");
                 Licorp.Diagnostics.LicorpTrace.Dbg($"Stack trace: {ex.StackTrace}");
                 // Don't throw - continue with built-in parameters only
+            }
+        }
+
+        /// <summary>
+        /// In View mode, keep only parameters that contain real data in at least one printable view.
+        /// This matches the expected ProSheets-like behavior: hide empty/unusable parameters.
+        /// </summary>
+        private void FilterAvailableParametersByViewData()
+        {
+            try
+            {
+                var printableViews = new FilteredElementCollector(_document)
+                    .OfClass(typeof(View))
+                    .Cast<View>()
+                    .Where(v => !v.IsTemplate && v.CanBePrinted)
+                    .Take(100)
+                    .ToList();
+
+                if (!printableViews.Any())
+                {
+                    LicorpTrace.Dbg("FilterAvailableParametersByViewData: no printable views found, skip filtering.");
+                    return;
+                }
+
+                bool HasValueInAnyView(string parameterName)
+                {
+                    foreach (var view in printableViews)
+                    {
+                        var value = GetViewParameterValueForDialog(view, parameterName);
+                        if (!string.IsNullOrWhiteSpace(value))
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+
+                var filtered = _availableParameters
+                    .Where(p => HiddenSystemTokens.Contains(p.Name) || HasValueInAnyView(p.Name))
+                    .ToList();
+
+                _availableParameters.Clear();
+                foreach (var item in filtered.OrderBy(p => p.Name))
+                {
+                    _availableParameters.Add(item);
+                }
+
+                LicorpTrace.Dbg($"FilterAvailableParametersByViewData: kept {_availableParameters.Count} parameters after filtering by real view data.");
+            }
+            catch (Exception ex)
+            {
+                LicorpTrace.Dbg($"ERROR in FilterAvailableParametersByViewData: {ex.Message}");
+            }
+        }
+
+        private string GetViewParameterValueForDialog(View view, string parameterName)
+        {
+            try
+            {
+                if (view == null || string.IsNullOrWhiteSpace(parameterName))
+                {
+                    return string.Empty;
+                }
+
+                if (string.Equals(parameterName, "View Template", StringComparison.OrdinalIgnoreCase))
+                {
+                    var templateId = view.ViewTemplateId;
+                    if (templateId != ElementId.InvalidElementId)
+                    {
+                        var template = _document.GetElement(templateId);
+                        return template?.Name ?? string.Empty;
+                    }
+
+                    return string.Empty;
+                }
+
+                if (string.Equals(parameterName, "Dependency", StringComparison.OrdinalIgnoreCase))
+                {
+                    var dep = GetParameterValueAsString(view.LookupParameter("Dependency"));
+                    return string.Equals(dep, "Independent", StringComparison.OrdinalIgnoreCase) ? string.Empty : dep;
+                }
+
+                // Lookup on view first
+                var param = view.LookupParameter(parameterName);
+                var value = GetParameterValueAsString(param);
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    return value;
+                }
+
+                // Fallback to project info parameters
+                var projectInfo = _document?.ProjectInformation;
+                if (projectInfo != null)
+                {
+                    var projectParam = projectInfo.LookupParameter(parameterName);
+                    value = GetParameterValueAsString(projectParam);
+                    if (!string.IsNullOrWhiteSpace(value))
+                    {
+                        return value;
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore per-parameter errors and treat as empty.
+            }
+
+            return string.Empty;
+        }
+
+        private string GetParameterValueAsString(Parameter param)
+        {
+            if (param == null || !param.HasValue)
+            {
+                return string.Empty;
+            }
+
+            switch (param.StorageType)
+            {
+                case StorageType.String:
+                    return param.AsString() ?? string.Empty;
+                case StorageType.Integer:
+                    return param.AsInteger().ToString();
+                case StorageType.Double:
+                    return param.AsValueString() ?? param.AsDouble().ToString();
+                case StorageType.ElementId:
+                    var elemId = param.AsElementId();
+                    if (elemId == ElementId.InvalidElementId)
+                    {
+                        return string.Empty;
+                    }
+                    return _document.GetElement(elemId)?.Name ?? string.Empty;
+                default:
+                    return string.Empty;
             }
         }
 
@@ -607,5 +749,6 @@ namespace LicorpExportPlus.Dialogs
         #endregion
     }
 }
+
 
 

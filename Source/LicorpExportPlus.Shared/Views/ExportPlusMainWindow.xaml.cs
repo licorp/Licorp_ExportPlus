@@ -7170,10 +7170,14 @@ Tiếp tục xuất file?";
                 return null;
             
             var parts = new List<string>();
+            var primaryView = GetPrimaryViewForDependentView(view);
             
             foreach (var paramConfig in parameters)
             {
-                string value = GetViewParameterValue(view, paramConfig.ParameterName);
+                // ProSheets-like behavior:
+                // - For dependent views, prefer reading from primary (independent) view
+                // - Fallback to the current dependent view if value is missing
+                string value = GetViewParameterValueWithPrimaryFallback(view, primaryView, paramConfig.ParameterName);
                 
                 if (!string.IsNullOrEmpty(value))
                 {
@@ -7183,6 +7187,51 @@ Tiếp tục xuất file?";
             }
             
             return BuildNameFromParameterParts(parts, parameters);
+        }
+
+        /// <summary>
+        /// For dependent views, return the primary (independent) view. Otherwise return null.
+        /// </summary>
+        private RevitView GetPrimaryViewForDependentView(RevitView view)
+        {
+            if (view == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                var primaryId = view.GetPrimaryViewId();
+                if (primaryId != ElementId.InvalidElementId)
+                {
+                    return _document.GetElement(primaryId) as RevitView;
+                }
+            }
+            catch
+            {
+                // Ignore and fallback to current view
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Resolve view parameter value with primary-view fallback.
+        /// </summary>
+        private string GetViewParameterValueWithPrimaryFallback(RevitView currentView, RevitView primaryView, string parameterName)
+        {
+            // Priority 1: primary (independent) view if available
+            if (primaryView != null)
+            {
+                var primaryValue = GetViewParameterValue(primaryView, parameterName);
+                if (!string.IsNullOrWhiteSpace(primaryValue))
+                {
+                    return primaryValue;
+                }
+            }
+
+            // Priority 2: current view (dependent or independent)
+            return GetViewParameterValue(currentView, parameterName);
         }
 
         private string BuildNameFromParameterParts(List<string> parts, ObservableCollection<SelectedParameterInfo> parameters)
@@ -7274,6 +7323,21 @@ Tiếp tục xuất file?";
         {
             try
             {
+                // Keep naming clean like ProSheets defaults:
+                // Dependency value "Independent" is usually redundant/noisy in file names.
+                if (string.Equals(parameterName, "Dependency", StringComparison.OrdinalIgnoreCase))
+                {
+                    var dependencyParam = view?.LookupParameter("Dependency");
+                    var dependencyValue = GetParameterValueAsString(dependencyParam);
+
+                    if (string.Equals(dependencyValue, "Independent", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return "";
+                    }
+
+                    return dependencyValue;
+                }
+
                 // Try built-in parameters first
                 switch (parameterName)
                 {
@@ -8790,6 +8854,7 @@ Tiếp tục xuất file?";
         */
     }
 }
+
 
 
 

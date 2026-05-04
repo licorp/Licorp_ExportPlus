@@ -89,7 +89,14 @@ if not exist "%SRC%" (
 
 if not exist "%DST%" mkdir "%DST%"
 
-robocopy "%SRC%" "%DST%" *.* /E /NFL /NDL /NJH /NJS /NP >nul
+rem Prevent recursive publish nesting from previous runs.
+if exist "%DST%\publish" (
+    rmdir /s /q "\\?\%DST%\publish" 2>nul
+    if exist "%DST%\publish" powershell -NoProfile -ExecutionPolicy Bypass -Command "Remove-Item -LiteralPath '\\?\%DST%\publish' -Recurse -Force -ErrorAction SilentlyContinue"
+)
+
+rem Copy build output but exclude publish/obj to avoid publish\...\publish loops.
+robocopy "%SRC%" "%DST%" *.* /E /XD "publish" "obj" /NFL /NDL /NJH /NJS /NP >nul
 set "RC=%ERRORLEVEL%"
 if %RC% GEQ 8 (
     echo ERROR: Failed to copy output for %TAG%.
