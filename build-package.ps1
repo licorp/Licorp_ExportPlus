@@ -13,15 +13,17 @@ $bundleName = "LicorpExportPlus.bundle"
 $bundlePath = Join-Path $releaseRoot $bundleName
 $buildPropsPath = Join-Path $root "Directory.Build.props"
 $programDataBundle = "C:\ProgramData\Autodesk\ApplicationPlugins\LicorpExportPlus.bundle"
-$yearMap = @{
-    "2020" = "R2020"
-    "2021" = "R2020"
-    "2022" = "R2020"
-    "2023" = "R2020"
-    "2024" = "R2020"
-    "2025" = "R2025"
-    "2026" = "R2025"
-    "2027" = "R2027"
+$runtimeMapPath = Join-Path $root "scripts\runtime-map.ps1"
+
+if (!(Test-Path -LiteralPath $runtimeMapPath)) {
+    throw "Runtime map script not found: $runtimeMapPath"
+}
+
+. $runtimeMapPath
+
+$yearMap = @{}
+foreach ($deployment in $RevitDeployments) {
+    $yearMap[$deployment.Year] = $deployment.RuntimeLabel
 }
 
 function Ensure-Directory([string]$Path) {
@@ -87,7 +89,28 @@ function Copy-FolderContents([string]$Source, [string]$Destination) {
         throw "Source folder not found: $Source"
     }
     if (Test-Path -LiteralPath $Destination) {
-        Remove-Item -LiteralPath $Destination -Recurse -Force
+        $deleted = $false
+        for ($attempt = 1; $attempt -le 5 -and -not $deleted; $attempt++) {
+            try {
+                Remove-Item -LiteralPath $Destination -Recurse -Force -ErrorAction Stop
+                $deleted = $true
+            }
+            catch {
+                if ($attempt -eq 5) {
+                    $stalePath = "$Destination.stale.$(Get-Date -Format 'yyyyMMddHHmmss')"
+                    try {
+                        Rename-Item -LiteralPath $Destination -NewName (Split-Path -Leaf $stalePath) -ErrorAction Stop
+                        Write-Warning "Could not delete destination, renamed it to: $stalePath"
+                        $deleted = $true
+                    }
+                    catch {
+                        throw "Cannot clean destination after $attempt attempts: $Destination. $($_.Exception.Message)"
+                    }
+                }
+
+                Start-Sleep -Milliseconds (250 * $attempt)
+            }
+        }
     }
     Ensure-Directory $Destination
     Get-ChildItem -LiteralPath $Source -Force | ForEach-Object {

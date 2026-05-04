@@ -78,6 +78,9 @@ namespace LicorpExportPlus.Views
         
         // Flag to indicate window is closing - used to stop LoadSheets/LoadViews early
         private volatile bool _isClosing = false;
+
+        // Guard flag to prevent recursive tab validation when SelectedIndex is changed in code.
+        private bool _isProgrammaticTabChange = false;
         
         // ⚡ Lazy loading flags - only load sheets/views when user actually needs them
         private bool _sheetsLoaded = false;
@@ -425,8 +428,7 @@ namespace LicorpExportPlus.Views
                 SelectedIFCSetup = "<In-Session Setup>";
                 // Debug logging removed
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
                 // Debug logging removed
                 // Fallback to hardcoded list
@@ -953,8 +955,7 @@ namespace LicorpExportPlus.Views
                 // Debug logging removed
                 // Debug logging removed
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -978,8 +979,7 @@ namespace LicorpExportPlus.Views
                 
                 // Debug logging removed
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -1058,8 +1058,7 @@ namespace LicorpExportPlus.Views
                 
                 // Debug logging removed
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -1097,8 +1096,7 @@ namespace LicorpExportPlus.Views
                     {
                         _exportCancellationTokenSource.Cancel();
                     }
-                    catch (Exception cancelEx)
-                    {
+                    catch (Exception) {
                         // Debug logging removed
                     }
                 }
@@ -1119,8 +1117,7 @@ namespace LicorpExportPlus.Views
                     _isClosing = false;
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
                 // Debug logging removed
             }
@@ -1143,8 +1140,7 @@ namespace LicorpExportPlus.Views
                         _exportCancellationTokenSource = null;
                         // Debug logging removed
                     }
-                    catch (Exception disposeEx)
-                    {
+                    catch (Exception) {
                         // Debug logging removed
                     }
                 }
@@ -1159,8 +1155,7 @@ namespace LicorpExportPlus.Views
                         _pdfExportEvent = null;
                         // Debug logging removed
                     }
-                    catch (Exception disposeEx)
-                    {
+                    catch (Exception) {
                         // Debug logging removed
                     }
                 }
@@ -1174,8 +1169,7 @@ namespace LicorpExportPlus.Views
                         _exportEvent = null;
                         // Debug logging removed
                     }
-                    catch (Exception disposeEx)
-                    {
+                    catch (Exception) {
                         // Debug logging removed
                     }
                 }
@@ -1189,16 +1183,14 @@ namespace LicorpExportPlus.Views
                         _ifcExportEvent = null;
                         // Debug logging removed
                     }
-                    catch (Exception disposeEx)
-                    {
+                    catch (Exception) {
                         // Debug logging removed
                     }
                 }
                 
                 // Debug logging removed
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -1226,8 +1218,7 @@ namespace LicorpExportPlus.Views
                 dialog.Owner = this;
                 dialog.ShowDialog();
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
                 // Fallback to simple message box
                 MessageBox.Show($"Export completed.\n\nLocation: {folderPath}", 
@@ -1285,9 +1276,7 @@ namespace LicorpExportPlus.Views
                         DesignOption = "",
                         Phase = "",
                         IsSelected = false,
-                        IsFullyLoaded = false,
-                        HasNoView = false,
-                        WarningMessage = null
+                        IsFullyLoaded = false
                     });
                 }
                 catch (Exception ex)
@@ -1323,7 +1312,6 @@ namespace LicorpExportPlus.Views
 
                     item.RevitSheet = sheet;
                     var parameters = GetSheetParametersFast(sheet);
-                    var (hasNoView, warningMsg) = CheckSheetViews(sheet);
 
                     item.Revision = parameters.Revision;
                     item.DrawnBy = parameters.DrawnBy;
@@ -1333,8 +1321,6 @@ namespace LicorpExportPlus.Views
                     item.DesignOption = parameters.DesignOption;
                     item.Phase = parameters.Phase;
                     item.Size = GuessSheetSizeFromNumber(item.SheetNumber);
-                    item.HasNoView = hasNoView;
-                    item.WarningMessage = warningMsg;
                     item.IsFullyLoaded = true;
                 }
                 catch (Exception ex)
@@ -1404,8 +1390,7 @@ namespace LicorpExportPlus.Views
                 loadTimer.Stop();
                 // Debug logging removed
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
                 // Debug logging removed
             }
@@ -1579,12 +1564,7 @@ namespace LicorpExportPlus.Views
                         
                         // Debug logging removed
                         
-                        // ⚠️ Check if sheet has views
-                        var (hasNoView, warningMsg) = CheckSheetViews(sheet);
-                        if (hasNoView)
-                        {
-                            // Debug logging removed
-                        }
+                        
                         
                         tempList.Add(new SheetItem
                         {
@@ -1602,9 +1582,7 @@ namespace LicorpExportPlus.Views
                             DesignOption = parameters.DesignOption,
                             Phase = parameters.Phase,
                             IsSelected = false,
-                            IsFullyLoaded = true, // ⚡ All data loaded!
-                            HasNoView = hasNoView,
-                            WarningMessage = warningMsg
+                            IsFullyLoaded = true // ⚡ All data loaded!
                         });
                         // Debug logging removed
                         
@@ -1614,8 +1592,7 @@ namespace LicorpExportPlus.Views
                             // Debug logging removed
                         }
                     }
-                    catch (Exception ex)
-                    {
+                    catch (Exception) {
                         // Debug logging removed
                         // Debug logging removed
                     }
@@ -1628,8 +1605,7 @@ namespace LicorpExportPlus.Views
                 
                 return tempList;
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
                 return new List<SheetItem>();
             }
@@ -1681,8 +1657,7 @@ namespace LicorpExportPlus.Views
                                 item.IsFullyLoaded = false;
                             }
                         }
-                        catch (Exception ex)
-                        {
+                        catch (Exception) {
                             // Debug logging removed
                         }
                     }
@@ -1708,8 +1683,7 @@ namespace LicorpExportPlus.Views
                     // Debug logging removed
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -1803,8 +1777,7 @@ namespace LicorpExportPlus.Views
                 
                 // Debug logging removed
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -1885,8 +1858,7 @@ namespace LicorpExportPlus.Views
                 
                 // Debug logging removed
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -1950,8 +1922,7 @@ namespace LicorpExportPlus.Views
                         }
                     }
                 }
-                catch (Exception ex)
-                {
+                catch (Exception) {
                     // Debug logging removed
                 }
             }
@@ -1996,8 +1967,7 @@ namespace LicorpExportPlus.Views
                         // Debug logging removed
                     }
                 }
-                catch (Exception ex)
-                {
+                catch (Exception) {
                     // Debug logging removed
                 }
             }
@@ -2129,9 +2099,6 @@ namespace LicorpExportPlus.Views
         /// </summary>
         private SheetItem ProcessSheetFast(ViewSheet sheet)
         {
-            // Check if sheet has views
-            var (hasNoView, warningMsg) = CheckSheetViews(sheet);
-            
             var sheetItem = new SheetItem
             {
                 Id = sheet.Id,
@@ -2142,9 +2109,7 @@ namespace LicorpExportPlus.Views
                 Revision = GetRevisionFast(sheet),
                 Size = GetCachedSheetSize(sheet),
                 CustomFileName = $"{sheet.SheetNumber ?? "NO_NUMBER"}_{(sheet.Name ?? "NO_NAME").Replace(" ", "_")}",
-                IsFullyLoaded = true,
-                HasNoView = hasNoView,
-                WarningMessage = warningMsg
+                IsFullyLoaded = true
             };
             
             // ⚡ NO PropertyChanged here - will subscribe AFTER binding completes
@@ -2262,8 +2227,7 @@ namespace LicorpExportPlus.Views
                         // Debug logging removed
                     }
                 }
-                catch (Exception ex)
-                {
+                catch (Exception) {
                     // Debug logging removed
                 }
             }
@@ -2332,9 +2296,6 @@ namespace LicorpExportPlus.Views
         {
             try
             {
-                // Check if sheet has views
-                var (hasNoView, warningMsg) = CheckSheetViews(data.Sheet);
-                
                 var sheetItem = new SheetItem
                 {
                     Id = data.Sheet.Id,  // ElementId, not string
@@ -2345,39 +2306,16 @@ namespace LicorpExportPlus.Views
                     Size = data.SheetSize,
                     IsSelected = false,
                     IsFullyLoaded = true,
-                    CustomFileName = $"{data.SheetNumber} - {data.SheetName}",
-                    HasNoView = hasNoView,
-                    WarningMessage = warningMsg
+                    CustomFileName = $"{data.SheetNumber} - {data.SheetName}"
                 };
                 
                 // ⚡ NO PropertyChanged here - will subscribe AFTER binding completes
                 
                 return sheetItem;
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
                 return null;
-            }
-        }
-        
-        /// <summary>
-        /// Check if sheet has any views placed on it
-        /// </summary>
-        private (bool hasNoView, string warningMsg) CheckSheetViews(ViewSheet sheet)
-        {
-            try
-            {
-                var viewIds = sheet.GetAllPlacedViews();
-                if (viewIds == null || viewIds.Count == 0)
-                {
-                    return (false, null);
-                }
-                return (false, null);
-            }
-            catch
-            {
-                return (false, null);
             }
         }
         
@@ -2406,9 +2344,6 @@ namespace LicorpExportPlus.Views
                 // Get size with caching
                 string sheetSize = GetCachedSheetSize(sheet);
                 
-                // Check if sheet has views
-                var (hasNoView, warningMsg) = CheckSheetViews(sheet);
-                
                 var sheetItem = new SheetItem
                 {
                     Id = sheet.Id,
@@ -2419,17 +2354,14 @@ namespace LicorpExportPlus.Views
                     Revision = revision,
                     Size = sheetSize,
                     CustomFileName = $"{sheetNumber}_{sheetName.Replace(" ", "_")}",
-                    IsFullyLoaded = true,
-                    HasNoView = hasNoView,
-                    WarningMessage = warningMsg
+                    IsFullyLoaded = true
                 };
                 
                 // ⚡ NO PropertyChanged here - will subscribe AFTER binding completes
                 
                 return sheetItem;
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
                 return null;
             }
@@ -2650,8 +2582,7 @@ namespace LicorpExportPlus.Views
                         // Debug logging removed
                     }
                 }
-                catch (Exception ex)
-                {
+                catch (Exception) {
                     // Debug logging removed
                 }
             }
@@ -2696,8 +2627,7 @@ namespace LicorpExportPlus.Views
                         // Debug logging removed
                     }
                 }
-                catch (Exception ex)
-                {
+                catch (Exception) {
                     // Debug logging removed
                 }
             }
@@ -2799,8 +2729,7 @@ namespace LicorpExportPlus.Views
                         // Debug logging removed
                     }
                 }
-                catch (Exception ex)
-                {
+                catch (Exception) {
                     // Debug logging removed
                 }
             }
@@ -2916,8 +2845,7 @@ namespace LicorpExportPlus.Views
                 Parameter disciplineParam = view.get_Parameter(BuiltInParameter.VIEW_DISCIPLINE);
                 data.Discipline = disciplineParam?.AsValueString() ?? "N/A";
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
                 data.Scale = "N/A";
                 data.DetailLevel = "N/A";
@@ -2980,8 +2908,7 @@ namespace LicorpExportPlus.Views
                 
                 return viewItem;
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
                 return null;
             }
@@ -3038,8 +2965,7 @@ namespace LicorpExportPlus.Views
                 
                 return viewItem;
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
                 return null;
             }
@@ -3068,8 +2994,7 @@ namespace LicorpExportPlus.Views
                 
                 return viewItem;
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
                 return null;
             }
@@ -3218,8 +3143,7 @@ namespace LicorpExportPlus.Views
                     }
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
             
@@ -3257,8 +3181,7 @@ namespace LicorpExportPlus.Views
                 var totalItemsForTitle = totalSheetsCount + totalViewsCount;
                 this.Title = $"Export + - {totalSelected} of {totalItemsForTitle} items selected ({selectedSheetsCount} sheets, {selectedViewsCount} views)";
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
             
@@ -3286,8 +3209,7 @@ namespace LicorpExportPlus.Views
                 
                 // Debug logging removed
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -3302,8 +3224,7 @@ namespace LicorpExportPlus.Views
                 // Format selection is handled by data binding in XAML
                 // Debug logging removed
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -3380,8 +3301,7 @@ namespace LicorpExportPlus.Views
                 // Debug logging removed
                 // Debug logging removed
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
                 // Debug logging removed
             }
@@ -3410,8 +3330,7 @@ namespace LicorpExportPlus.Views
                 // Update Export Queue for Create tab
                 UpdateExportQueue();
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -3475,6 +3394,9 @@ namespace LicorpExportPlus.Views
                     ExportQueueItems.Add(queueItem);
                 }
 
+                // Keep PDF queue order in sync with the latest order saved from "Order sheets and views".
+                ApplySavedOrderToPdfQueue();
+
                 // Debug logging removed
                 
                 // DEBUG: List all items in queue
@@ -3498,6 +3420,79 @@ namespace LicorpExportPlus.Views
             finally
             {
                 _isUpdatingExportQueue = false;
+            }
+        }
+
+        private void ApplySavedOrderToPdfQueue()
+        {
+            try
+            {
+                var savedOrder = _profileManager?.CurrentProfile?.Settings?.SheetViewOrder;
+                if (savedOrder == null || savedOrder.Count == 0 || ExportQueueItems == null || ExportQueueItems.Count == 0)
+                {
+                    return;
+                }
+
+                var pdfItems = ExportQueueItems
+                    .Where(i => string.Equals(i.Format, "PDF", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                if (pdfItems.Count <= 1)
+                {
+                    return;
+                }
+
+                var orderIndex = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                for (int i = 0; i < savedOrder.Count; i++)
+                {
+                    var id = savedOrder[i];
+                    if (!string.IsNullOrWhiteSpace(id) && !orderIndex.ContainsKey(id))
+                    {
+                        orderIndex[id] = i;
+                    }
+                }
+
+                int fallback = orderIndex.Count;
+                var sortedPdfItems = pdfItems
+                    .OrderBy(i =>
+                    {
+                        var sheet = Sheets?.FirstOrDefault(s => string.Equals(s.SheetNumber, i.ViewSheetNumber, StringComparison.OrdinalIgnoreCase));
+                        if (sheet != null)
+                        {
+                            var sheetId = sheet.Id.GetIdValue().ToString();
+                            if (orderIndex.TryGetValue(sheetId, out int idx))
+                            {
+                                return idx;
+                            }
+                        }
+
+                        var view = Views?.FirstOrDefault(v => string.Equals(v.ViewName, i.ViewSheetName, StringComparison.OrdinalIgnoreCase));
+                        if (view != null && !string.IsNullOrWhiteSpace(view.ViewId) && orderIndex.TryGetValue(view.ViewId, out int viewIdx))
+                        {
+                            return viewIdx;
+                        }
+
+                        return fallback++;
+                    })
+                    .ToList();
+
+                var nonPdf = ExportQueueItems
+                    .Where(i => !string.Equals(i.Format, "PDF", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                ExportQueueItems.Clear();
+                foreach (var item in sortedPdfItems)
+                {
+                    ExportQueueItems.Add(item);
+                }
+                foreach (var item in nonPdf)
+                {
+                    ExportQueueItems.Add(item);
+                }
+            }
+            catch (Exception ex)
+            {
+                LicorpTrace.Warn($"Could not apply saved sheet/view order to PDF queue: {ex.Message}");
             }
         }
 
@@ -3605,7 +3600,10 @@ namespace LicorpExportPlus.Views
             {
                 if (ExportSettings?.CombineFiles == true)
                 {
-                    var pdfItems = ExportQueueItems?.Where(i => string.Equals(i.Format, "PDF", StringComparison.OrdinalIgnoreCase)).ToList();
+                    var pdfItems = (ExportQueueDataGrid?.Items?.OfType<ExportQueueItem>()
+                                    ?? Enumerable.Empty<ExportQueueItem>())
+                                   .Where(i => string.Equals(i.Format, "PDF", StringComparison.OrdinalIgnoreCase))
+                                   .ToList();
                     if (pdfItems != null && pdfItems.Count > 0)
                     {
                         var combinedName = !string.IsNullOrWhiteSpace(ExportSettings.CombineCustomFileName)
@@ -4841,10 +4839,51 @@ Tiếp tục xuất file?";
 
         #region Navigation Methods
 
+        private bool HasAnySheetOrViewSelected()
+        {
+            var sheetsSelected = Sheets?.Any(s => s.IsSelected) == true;
+            var viewsSelected = Views?.Any(v => v.IsSelected) == true;
+            return sheetsSelected || viewsSelected;
+        }
+
+        private bool EnsureSelectionBeforeFormatTab()
+        {
+            if (HasAnySheetOrViewSelected())
+                return true;
+
+            MessageBox.Show(
+                "Vui long tick chon it nhat 1 View hoac Sheet truoc khi chuyen sang tab Format.",
+                "Thong bao",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return false;
+        }
+
+        private void ReturnToSelectionTabSafe()
+        {
+            if (MainTabControl == null)
+            {
+                return;
+            }
+
+            _isProgrammaticTabChange = true;
+            MainTabControl.SelectedIndex = 0;
+
+            // Reset guard after UI completes tab switch to avoid re-entrant SelectionChanged glitches.
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                _isProgrammaticTabChange = false;
+                UpdateNavigationButtons();
+            }), DispatcherPriority.Background);
+        }
+
         private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             try
             {
+                if (_isProgrammaticTabChange)
+                    return;
+
                 // Debug logging removed
                 
                 if (MainTabControl == null)
@@ -4855,6 +4894,12 @@ Tiếp tục xuất file?";
                 
                 int selectedIndex = MainTabControl.SelectedIndex;
                 // Debug logging removed
+
+                if (selectedIndex == 1 && !EnsureSelectionBeforeFormatTab())
+                {
+                    ReturnToSelectionTabSafe();
+                    return;
+                }
                 
                 if (selectedIndex >= 0 && selectedIndex < MainTabControl.Items.Count)
                 {
@@ -4884,8 +4929,7 @@ Tiếp tục xuất file?";
                 
                 // Debug logging removed
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
                 // Debug logging removed
             }
@@ -4914,6 +4958,11 @@ Tiếp tục xuất file?";
         private void NextButton_Click(object sender, RoutedEventArgs e)
         {
             // Debug logging removed
+
+            if (MainTabControl?.SelectedIndex == 0 && !EnsureSelectionBeforeFormatTab())
+            {
+                return;
+            }
             
             if (MainTabControl.SelectedIndex < MainTabControl.Items.Count - 1)
             {
@@ -4955,8 +5004,7 @@ Tiếp tục xuất file?";
                 
                 // Debug logging removed
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -5370,8 +5418,7 @@ Tiếp tục xuất file?";
                 });
                 e.Handled = true;
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -5771,6 +5818,59 @@ Tiếp tục xuất file?";
             }
         }
 
+        private List<SheetItem> GetSheetsInCurrentPdfQueueOrder(List<SheetItem> selectedSheets)
+        {
+            if (selectedSheets == null || selectedSheets.Count == 0)
+            {
+                return new List<SheetItem>();
+            }
+
+            // Use the current on-screen order from Create tab (after user sort by View/Sheet Number).
+            var pdfQueueItems = (ExportQueueDataGrid?.Items?.OfType<ExportQueueItem>()
+                                ?? Enumerable.Empty<ExportQueueItem>())
+                               .Where(i => string.Equals(i.Format, "PDF", StringComparison.OrdinalIgnoreCase))
+                               .ToList();
+
+            if (pdfQueueItems.Count == 0)
+            {
+                return selectedSheets;
+            }
+
+            var byNumber = selectedSheets
+                .Where(s => !string.IsNullOrWhiteSpace(s?.SheetNumber))
+                .GroupBy(s => s.SheetNumber)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            var ordered = new List<SheetItem>();
+            var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var queueItem in pdfQueueItems)
+            {
+                var number = queueItem?.ViewSheetNumber;
+                if (string.IsNullOrWhiteSpace(number) || used.Contains(number))
+                {
+                    continue;
+                }
+
+                if (byNumber.TryGetValue(number, out var sheet))
+                {
+                    ordered.Add(sheet);
+                    used.Add(number);
+                }
+            }
+
+            // Keep any leftover selected sheets at the end to avoid accidental drops.
+            foreach (var sheet in selectedSheets)
+            {
+                if (sheet != null && !used.Contains(sheet.SheetNumber))
+                {
+                    ordered.Add(sheet);
+                }
+            }
+
+            return ordered;
+        }
+
         private void ScheduleToggle_Checked(object sender, RoutedEventArgs e)
         {
             // Debug logging removed
@@ -6029,7 +6129,9 @@ Tiếp tục xuất file?";
                                 
                                 // Set export parameters
                                 _pdfExportHandler.Document = _document;
-                                _pdfExportHandler.SheetItems = selectedSheets;
+                                    _pdfExportHandler.SheetItems = ExportSettings?.CombineFiles == true
+                                        ? GetSheetsInCurrentPdfQueueOrder(selectedSheets)
+                                        : selectedSheets;
                                 _pdfExportHandler.OutputFolder = formatOutputFolder;  // ✅ Use format-specific folder
                                 _pdfExportHandler.Settings = ExportSettings;
                                 _pdfExportHandler.ProgressCallback = (current, total, sheetNumber, isFileCompleted) =>
@@ -6300,8 +6402,7 @@ Tiếp tục xuất file?";
                                             // Debug logging removed
                                         }
                                     }
-                                    catch (Exception ex)
-                                    {
+                                    catch (Exception) {
                                         // Debug logging removed
                                     }
                                 }
@@ -6925,8 +7026,7 @@ Tiếp tục xuất file?";
                                 existingConfig = Newtonsoft.Json.JsonConvert.DeserializeObject<List<Models.SelectedParameterInfo>>(configJson);
                                 // Debug logging removed
                             }
-                            catch (Exception jsonEx)
-                            {
+                            catch (Exception) {
                                 // Debug logging removed
                             }
                         }
@@ -6947,8 +7047,7 @@ Tiếp tục xuất file?";
                                 _profileManager.CurrentProfile.Settings.CustomFileNameConfigJson_Sheets = configJson;
                                 _profileManager.SaveProfile(_profileManager.CurrentProfile);
                             }
-                            catch (Exception saveEx)
-                            {
+                            catch (Exception) {
                                 // Debug logging removed
                             }
                         }
@@ -6998,8 +7097,7 @@ Tiếp tục xuất file?";
                                 existingConfig = Newtonsoft.Json.JsonConvert.DeserializeObject<List<Models.SelectedParameterInfo>>(configJson);
                                 // Debug logging removed
                             }
-                            catch (Exception jsonEx)
-                            {
+                            catch (Exception) {
                                 // Debug logging removed
                             }
                         }
@@ -7020,8 +7118,7 @@ Tiếp tục xuất file?";
                                 _profileManager.CurrentProfile.Settings.CustomFileNameConfigJson_Views = configJson;
                                 _profileManager.SaveProfile(_profileManager.CurrentProfile);
                             }
-                            catch (Exception saveEx)
-                            {
+                            catch (Exception) {
                                 // Debug logging removed
                             }
                         }
@@ -7081,8 +7178,7 @@ Tiếp tục xuất file?";
                         // Debug logging removed
                     }
                 }
-                catch (Exception ex)
-                {
+                catch (Exception) {
                     // Debug logging removed
                 }
             }
@@ -7128,12 +7224,16 @@ Tiếp tục xuất file?";
                         // Debug logging removed
                     }
                 }
-                catch (Exception ex)
-                {
+                catch (Exception) {
                     // Debug logging removed
                 }
             }
             
+            // Force DataGrid + bindings to repaint after bulk update.
+            OnPropertyChanged(nameof(Views));
+            OnPropertyChanged(nameof(SelectedItemsForExport));
+            ViewsDataGrid?.Items.Refresh();
+
             return count;
         }
 
@@ -7146,19 +7246,27 @@ Tiếp tục xuất file?";
                 return null;
             
             var parts = new List<string>();
+            var separators = new List<string>();
             
-            foreach (var paramConfig in parameters)
+            for (int i = 0; i < parameters.Count; i++)
             {
+                var paramConfig = parameters[i];
                 string value = GetSheetParameterValue(sheet, paramConfig.ParameterName);
                 
                 if (!string.IsNullOrEmpty(value))
                 {
                     string part = $"{paramConfig.Prefix}{value}{paramConfig.Suffix}";
                     parts.Add(part);
+
+                    // Keep separators aligned only with parameters that actually produced values.
+                    if (i < parameters.Count - 1)
+                    {
+                        separators.Add(paramConfig.Separator ?? "");
+                    }
                 }
             }
             
-            return BuildNameFromParameterParts(parts, parameters);
+            return BuildNameFromParameterParts(parts, separators);
         }
 
         /// <summary>
@@ -7170,10 +7278,12 @@ Tiếp tục xuất file?";
                 return null;
             
             var parts = new List<string>();
+            var separators = new List<string>();
             var primaryView = GetPrimaryViewForDependentView(view);
             
-            foreach (var paramConfig in parameters)
+            for (int i = 0; i < parameters.Count; i++)
             {
+                var paramConfig = parameters[i];
                 // ProSheets-like behavior:
                 // - For dependent views, prefer reading from primary (independent) view
                 // - Fallback to the current dependent view if value is missing
@@ -7183,10 +7293,16 @@ Tiếp tục xuất file?";
                 {
                     string part = $"{paramConfig.Prefix}{value}{paramConfig.Suffix}";
                     parts.Add(part);
+
+                    // Keep separators aligned only with parameters that actually produced values.
+                    if (i < parameters.Count - 1)
+                    {
+                        separators.Add(paramConfig.Separator ?? "");
+                    }
                 }
             }
             
-            return BuildNameFromParameterParts(parts, parameters);
+            return BuildNameFromParameterParts(parts, separators);
         }
 
         /// <summary>
@@ -7234,7 +7350,7 @@ Tiếp tục xuất file?";
             return GetViewParameterValue(currentView, parameterName);
         }
 
-        private string BuildNameFromParameterParts(List<string> parts, ObservableCollection<SelectedParameterInfo> parameters)
+        private string BuildNameFromParameterParts(List<string> parts, List<string> separators)
         {
             if (parts == null || parts.Count == 0)
             {
@@ -7247,7 +7363,7 @@ Tiếp tục xuất file?";
                 result += parts[i];
                 if (i < parts.Count - 1)
                 {
-                    result += parameters.ElementAtOrDefault(i)?.Separator ?? "";
+                    result += separators.ElementAtOrDefault(i) ?? "";
                 }
             }
 
@@ -7308,8 +7424,7 @@ Tiếp tục xuất file?";
                     }
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
             
@@ -7375,8 +7490,7 @@ Tiếp tục xuất file?";
                     }
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
             
@@ -7587,8 +7701,7 @@ Tiếp tục xuất file?";
                                     // Debug logging removed
                                 }
                             }
-                            catch (Exception itemEx)
-                            {
+                            catch (Exception) {
                                 // Debug logging removed
                             }
                         }
@@ -7659,8 +7772,7 @@ Tiếp tục xuất file?";
                 Sheets = filteredSheets;
                 // Debug logging removed
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -7721,8 +7833,7 @@ Tiếp tục xuất file?";
 
                 UpdatePdfSettingsUiState();
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -7766,8 +7877,7 @@ Tiếp tục xuất file?";
                     _profileManager.CurrentProfile.Settings.SaveAllInSameFolder = false;
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -7794,8 +7904,7 @@ Tiếp tục xuất file?";
                     _profileManager.CurrentProfile.Settings.SaveAllInSameFolder = false;
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -7991,8 +8100,7 @@ Tiếp tục xuất file?";
                     // Debug logging removed
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -8384,8 +8492,7 @@ Tiếp tục xuất file?";
                 
                 // Debug logging removed
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
             
@@ -8465,8 +8572,7 @@ Tiếp tục xuất file?";
                                     "Load Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
                 throw;
             }
@@ -8563,8 +8669,7 @@ Tiếp tục xuất file?";
                     // Debug logging removed
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -8657,8 +8762,7 @@ Tiếp tục xuất file?";
                     BrowseParamMappingButtonIFC.Click += BrowseIFCFile_Click;
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -8785,8 +8889,7 @@ Tiếp tục xuất file?";
                 DWGExportSetupComboBox.SelectedIndex = 0;
                 // Debug logging removed
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
                 
                 // Fallback to default
@@ -8815,8 +8918,7 @@ Tiếp tục xuất file?";
                     this.ExportSettings.DWGExportSetupName = selectedSetup;
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
                 // Debug logging removed
             }
         }
@@ -8854,6 +8956,13 @@ Tiếp tục xuất file?";
         */
     }
 }
+
+
+
+
+
+
+
 
 
 

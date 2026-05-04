@@ -2,14 +2,13 @@ using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using Licorp.Diagnostics;
-using LicorpExportPlus.Views;
+using LicorpExportPlus.Services;
 
 namespace LicorpExportPlus
 {
     [Transaction(TransactionMode.Manual)]
     public class ExportPlusCommand : IExternalCommand
     {
-        private static ExportPlusMainWindow _window;
         private const string NoActiveDocumentMessage = "Không tìm thấy tài liệu Revit đang mở.";
 
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
@@ -27,17 +26,26 @@ namespace LicorpExportPlus
                 }
 
                 var doc = uiDoc.Document;
-                
-                if (_window == null || !_window.IsLoaded)
+
+                IMainWindowLauncher windowLauncher;
+                if (ExportPlusApplication.Container == null)
                 {
-                    _window = new ExportPlusMainWindow(doc, uiApp);
-                    _window.Closed += (s, e) => _window = null;
-                    _window.Show();
+                    LicorpTrace.Warn("ExportPlusCommand detected null Container. Using Addin Manager fallback launcher.");
+                    windowLauncher = new MainWindowLauncher(new MainWindowFactory());
                 }
                 else
                 {
-                    _window.Activate();
+                    windowLauncher = ExportPlusApplication.Container.Resolve<IMainWindowLauncher>();
                 }
+
+                if (windowLauncher == null)
+                {
+                    message = "Không thể khởi tạo launcher cho cửa sổ Export+.";
+                    LicorpTrace.Error("ExportPlusCommand failed: IMainWindowLauncher is not registered.");
+                    return Result.Failed;
+                }
+
+                windowLauncher.ShowOrActivate(doc, uiApp);
 
                 return Result.Succeeded;
             }

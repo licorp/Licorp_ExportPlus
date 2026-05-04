@@ -58,8 +58,7 @@ namespace LicorpExportPlus.Views
                 }
                 
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
             }
         }
         

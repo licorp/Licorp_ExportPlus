@@ -545,21 +545,6 @@
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
 
-                            <!-- Warning Column for sheets with no view -->
-                            <DataGridTemplateColumn Width="40" CanUserResize="False" Header="">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="⚠️" 
-                                                   FontSize="16"
-                                                   Foreground="#FFA500"
-                                                   HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"
-                                                   ToolTip="{Binding WarningMessage}"
-                                                   Visibility="{Binding HasNoView, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-
                             <DataGridTextColumn Width="100" Binding="{Binding Revision}" Header="Revision" CanUserResize="True">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">

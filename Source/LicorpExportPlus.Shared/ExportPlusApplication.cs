@@ -5,6 +5,7 @@ using Autodesk.Revit.Attributes;
 using Autodesk.Revit.UI;
 using Licorp.Diagnostics;
 using LicorpExportPlus.Helpers;
+using LicorpExportPlus.Services;
 using ricaun.Revit.DI;
 using ricaun.Revit.UI.Tasks;
 using ricaun.DI;
@@ -72,6 +73,7 @@ namespace LicorpExportPlus
         {
             var container = new Container();
             container.AddRevitSingleton(application);
+            container.AddExportPlusServices();
             return container;
         }
 

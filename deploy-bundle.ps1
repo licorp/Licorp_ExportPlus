@@ -16,6 +16,13 @@ $BundleRoot = Join-Path $ReleaseArtifactsRoot "LicorpExportPlus.bundle"
 $BundleContents = Join-Path $BundleRoot "Contents"
 $ProgramDataBundle = "C:\ProgramData\Autodesk\ApplicationPlugins\LicorpExportPlus.bundle"
 $BuildPropsPath = Join-Path $ProjectRoot "Directory.Build.props"
+$RuntimeMapPath = Join-Path $ProjectRoot "scripts\runtime-map.ps1"
+
+if (-not (Test-Path -LiteralPath $RuntimeMapPath)) {
+    throw "Runtime map script not found: $RuntimeMapPath"
+}
+
+. $RuntimeMapPath
 
 [xml]$buildProps = Get-Content -LiteralPath $BuildPropsPath
 $buildMetadata = $buildProps.Project.PropertyGroup
@@ -26,21 +33,17 @@ $Company = $buildMetadata.Company
 $Version = $buildMetadata.Version
 
 $runtimeProjects = @(
-    @{ Label = "R2020"; Versions = "2020-2024"; Path = Join-Path $SourceRoot "LicorpExportPlus.R20\LicorpExportPlus.R20.csproj"; Output = Join-Path $ProjectRoot "bin\R2020\$Configuration" },
-    @{ Label = "R2025"; Versions = "2025-2026"; Path = Join-Path $SourceRoot "LicorpExportPlus.R25\LicorpExportPlus.R25.csproj"; Output = Join-Path $ProjectRoot "bin\R2025\$Configuration" },
-    @{ Label = "R2027"; Versions = "2027"; Path = Join-Path $SourceRoot "LicorpExportPlus.R27\LicorpExportPlus.R27.csproj"; Output = Join-Path $ProjectRoot "bin\R2027\$Configuration" }
+    $RuntimeProjects | ForEach-Object {
+        @{
+            Label = $_.Label
+            Versions = $_.Versions
+            Path = Join-Path $SourceRoot $_.Project
+            Output = Join-Path $ProjectRoot ($_.Output + "\$Configuration")
+        }
+    }
 )
 
-$revitDeployments = @(
-    @{ Year = "2020"; Label = "R2020"; RuntimeLabel = "R2020" },
-    @{ Year = "2021"; Label = "R2021"; RuntimeLabel = "R2020" },
-    @{ Year = "2022"; Label = "R2022"; RuntimeLabel = "R2020" },
-    @{ Year = "2023"; Label = "R2023"; RuntimeLabel = "R2020" },
-    @{ Year = "2024"; Label = "R2024"; RuntimeLabel = "R2020" },
-    @{ Year = "2025"; Label = "R2025"; RuntimeLabel = "R2025" },
-    @{ Year = "2026"; Label = "R2026"; RuntimeLabel = "R2025" },
-    @{ Year = "2027"; Label = "R2027"; RuntimeLabel = "R2027" }
-)
+$revitDeployments = @($RevitDeployments)
 
 function Write-Step([string]$message) {
     Write-Host ""

@@ -194,8 +194,7 @@ namespace LicorpExportPlus.Views
                             {
                             }
                         }
-                        catch (Exception xmlEx)
-                        {
+                        catch (Exception) {
                         }
                     }
                     else
@@ -281,8 +280,7 @@ namespace LicorpExportPlus.Views
                 }
 
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
             }
         }
         
@@ -342,8 +340,7 @@ namespace LicorpExportPlus.Views
                     perfTimer.Stop();
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
             }
         }
         
@@ -382,8 +379,7 @@ namespace LicorpExportPlus.Views
                     }
                 }
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
             }
         }
 
@@ -496,8 +492,7 @@ namespace LicorpExportPlus.Views
 
                 _profileManager.SaveProfile(profile);
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
             }
         }
 
@@ -684,75 +679,7 @@ namespace LicorpExportPlus.Views
                                     
                                     if (xmlProfile != null && xmlProfile.TemplateInfo != null && newProfile.Settings != null)
                                     {
-                                        var template = xmlProfile.TemplateInfo;
-                                        
-                                        // ===== APPLY ALL SETTINGS FROM XML =====
-                                        
-                                        // Format checkboxes
-                                        newProfile.Settings.PDFEnabled = template.IsPDFChecked;
-                                        newProfile.Settings.DWGEnabled = template.IsDWGChecked;
-                                        newProfile.Settings.DGNEnabled = false;
-                                        newProfile.Settings.IFCEnabled = template.IsIFCChecked;
-                                        newProfile.Settings.IMGEnabled = template.IsIMGChecked;
-                                        newProfile.Settings.CompactDwgFiles = template.DWG_MergedViews;
-                                        
-                                        // View options
-                                        newProfile.Settings.HideCropBoundaries = template.HideCropBoundaries;
-                                        newProfile.Settings.HideScopeBoxes = template.HideScopeBox;
-                                        
-                                        // File settings
-                                        newProfile.Settings.SaveAllInSameFolder = !template.IsSeparateFile;
-                                        if (!string.IsNullOrEmpty(template.FilePath))
-                                        {
-                                            newProfile.Settings.OutputFolder = template.FilePath;
-                                        }
-                                        
-                                        // PDF specific settings
-                                        newProfile.Settings.PDFVectorProcessing = template.IsVectorProcessing;
-                                        newProfile.Settings.PDFRasterQuality = template.RasterQuality;
-                                        newProfile.Settings.PDFColorMode = template.Color;
-                                        newProfile.Settings.PDFFitToPage = template.IsFitToPage;
-                                        newProfile.Settings.PDFIsCenter = template.IsCenter;
-                                        newProfile.Settings.PDFMarginType = template.SelectedMarginType;
-                                        
-                                        // DWF settings
-                                        if (template.DWF != null)
-                                        {
-                                            newProfile.Settings.DWFImageFormat = template.DWF.OptImageFormat;
-                                            newProfile.Settings.DWFImageQuality = template.DWF.OptImageQuality;
-                                            newProfile.Settings.DWFExportTextures = template.DWF.OptExportTextures;
-                                        }
-                                        
-                                        // NWC settings
-                                        if (template.NWC != null)
-                                        {
-                                            newProfile.Settings.NWCConvertElementProperties = template.NWC.ConvertElementProperties;
-                                            newProfile.Settings.NWCCoordinates = template.NWC.Coordinates;
-                                            newProfile.Settings.NWCDivideFileIntoLevels = template.NWC.DivideFileIntoLevels;
-                                            newProfile.Settings.NWCExportElementIds = template.NWC.ExportElementIds;
-                                            newProfile.Settings.NWCExportParts = template.NWC.ExportParts;
-                                            newProfile.Settings.NWCFacetingFactor = template.NWC.FacetingFactor;
-                                        }
-                                        
-                                        // IFC settings
-                                        if (template.IFC != null)
-                                        {
-                                            newProfile.Settings.IFCFileVersion = template.IFC.FileVersion;
-                                            newProfile.Settings.IFCSpaceBoundaries = template.IFC.SpaceBoundaries;
-                                            newProfile.Settings.IFCSitePlacement = template.IFC.SitePlacement;
-                                            newProfile.Settings.IFCExportBaseQuantities = template.IFC.ExportBaseQuantities;
-                                            newProfile.Settings.IFCExportIFCCommonPropertySets = template.IFC.ExportIFCCommonPropertySets;
-                                            newProfile.Settings.IFCTessellationLevelOfDetail = template.IFC.TessellationLevelOfDetail;
-                                        }
-                                        
-                                        // IMG settings
-                                        if (template.IMG != null)
-                                        {
-                                            newProfile.Settings.IMGImageResolution = template.IMG.ImageResolution;
-                                            newProfile.Settings.IMGFileType = template.IMG.HLRandWFViewsFileType;
-                                            newProfile.Settings.IMGZoomType = template.IMG.ZoomType;
-                                            newProfile.Settings.IMGPixelSize = template.IMG.PixelSize;
-                                        }
+                                        XmlProfileSettingsMapper.ApplyTemplateToSettings(xmlProfile.TemplateInfo, newProfile.Settings);
                                         
                                         // Save profile with all settings
                                         
@@ -969,24 +896,7 @@ namespace LicorpExportPlus.Views
 
             var template = xmlProfile.TemplateInfo;
             profile.XmlFilePath = filePath;
-            profile.Settings.PDFEnabled = template.IsPDFChecked;
-            profile.Settings.DWGEnabled = template.IsDWGChecked;
-            profile.Settings.DGNEnabled = false;
-            profile.Settings.IFCEnabled = template.IsIFCChecked;
-            profile.Settings.IMGEnabled = template.IsIMGChecked;
-            profile.Settings.CompactDwgFiles = template.DWG_MergedViews;
-            profile.Settings.HideCropBoundaries = template.HideCropBoundaries;
-            profile.Settings.HideScopeBoxes = template.HideScopeBox;
-            profile.Settings.SaveAllInSameFolder = !template.IsSeparateFile;
-            profile.Settings.OutputFolder = string.IsNullOrWhiteSpace(template.FilePath)
-                ? profile.Settings.OutputFolder
-                : template.FilePath;
-            profile.Settings.PDFVectorProcessing = template.IsVectorProcessing;
-            profile.Settings.PDFRasterQuality = template.RasterQuality;
-            profile.Settings.PDFColorMode = template.Color;
-            profile.Settings.PDFFitToPage = template.IsFitToPage;
-            profile.Settings.PDFIsCenter = template.IsCenter;
-            profile.Settings.PDFMarginType = template.SelectedMarginType;
+            XmlProfileSettingsMapper.ApplyTemplateToSettings(template, profile.Settings);
 
             ConvertAndSaveXMLParametersToProfile(xmlProfile, profile);
             _profileManager.SaveProfile(profile);
@@ -1053,8 +963,7 @@ namespace LicorpExportPlus.Views
                 {
                     UpdateExportQueue();
                 }
-                catch (Exception ex)
-                {
+                catch (Exception) {
                 }
             }
         }
@@ -1170,8 +1079,7 @@ namespace LicorpExportPlus.Views
                 }
                 
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
             }
         }
         
@@ -1287,8 +1195,7 @@ namespace LicorpExportPlus.Views
                 }
                 
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
             }
         }
         
@@ -1476,8 +1383,7 @@ namespace LicorpExportPlus.Views
                 // Save profile to disk
                 _profileManager.SaveProfile(profile);
             }
-            catch (Exception ex)
-            {
+            catch (Exception) {
             }
         }
         
