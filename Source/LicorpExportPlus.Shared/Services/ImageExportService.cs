@@ -27,7 +27,7 @@ namespace LicorpExportPlus.Services
                 {
                     sheet.Document.ExportImage(imageOptions);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
             }

@@ -22,7 +22,7 @@ namespace LicorpExportPlus.Services
                 }
                 return "Unknown";
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return "Error";
             }

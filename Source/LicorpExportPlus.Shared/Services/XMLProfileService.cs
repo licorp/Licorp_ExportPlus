@@ -450,7 +450,7 @@ IsSelected = true
                 }
 
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

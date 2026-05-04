@@ -46,7 +46,7 @@ namespace LicorpExportPlus.Services
                     Directory.CreateDirectory(_exportPlusProfileFolder);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
@@ -108,7 +108,7 @@ namespace LicorpExportPlus.Services
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
@@ -124,7 +124,7 @@ namespace LicorpExportPlus.Services
                 }
                 return new List<SheetFileNameInfo>();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return new List<SheetFileNameInfo>();
             }
@@ -160,7 +160,7 @@ namespace LicorpExportPlus.Services
                                 Profiles.Add(profile);
                             }
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
                         }
                     }
@@ -169,7 +169,7 @@ namespace LicorpExportPlus.Services
                 {
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
@@ -199,13 +199,13 @@ namespace LicorpExportPlus.Services
                                 Profiles.Add(profile);
                             }
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
                         }
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
@@ -231,7 +231,7 @@ namespace LicorpExportPlus.Services
                     Profiles.Add(profile);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
@@ -257,7 +257,7 @@ namespace LicorpExportPlus.Services
                 {
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }
@@ -318,7 +318,7 @@ namespace LicorpExportPlus.Services
 
                 return null;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return null;
             }
@@ -337,7 +337,7 @@ namespace LicorpExportPlus.Services
                 File.WriteAllText(jsonFilePath, json);
 
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }
