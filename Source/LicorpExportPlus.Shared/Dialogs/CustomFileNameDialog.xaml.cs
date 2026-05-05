@@ -172,11 +172,15 @@ namespace LicorpExportPlus.Dialogs
                     Licorp.Diagnostics.LicorpTrace.Dbg("Loading parameters from document...");
                     LoadParametersFromDocument();
 
-                    // ProSheets-like behavior for Views:
-                    // only keep parameters that actually have values in at least one printable view.
+                    // ProSheets-like behavior:
+                    // only keep parameters that actually have values in real data.
                     if (_isViewMode)
                     {
                         FilterAvailableParametersByViewData();
+                    }
+                    else
+                    {
+                        FilterAvailableParametersBySheetData();
                     }
                 }
                 else
@@ -404,6 +408,94 @@ namespace LicorpExportPlus.Dialogs
                 }
 
                 // Fallback to project info parameters
+                var projectInfo = _document?.ProjectInformation;
+                if (projectInfo != null)
+                {
+                    var projectParam = projectInfo.LookupParameter(parameterName);
+                    value = GetParameterValueAsString(projectParam);
+                    if (!string.IsNullOrWhiteSpace(value))
+                    {
+                        return value;
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore per-parameter errors and treat as empty.
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// In Sheet mode, keep only parameters that contain real data in at least one sheet.
+        /// Hide empty/unusable parameters to prevent "No updates" after user selection.
+        /// </summary>
+        private void FilterAvailableParametersBySheetData()
+        {
+            try
+            {
+                var sheets = new FilteredElementCollector(_document)
+                    .OfClass(typeof(ViewSheet))
+                    .Cast<ViewSheet>()
+                    .Where(s => !s.IsPlaceholder)
+                    .Take(200)
+                    .ToList();
+
+                if (!sheets.Any())
+                {
+                    LicorpTrace.Dbg("FilterAvailableParametersBySheetData: no sheets found, skip filtering.");
+                    return;
+                }
+
+                bool HasValueInAnySheet(string parameterName)
+                {
+                    foreach (var sheet in sheets)
+                    {
+                        var value = GetSheetParameterValueForDialog(sheet, parameterName);
+                        if (!string.IsNullOrWhiteSpace(value))
+                        {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+
+                var filtered = _availableParameters
+                    .Where(p => HiddenSystemTokens.Contains(p.Name) || HasValueInAnySheet(p.Name))
+                    .ToList();
+
+                _availableParameters.Clear();
+                foreach (var item in filtered.OrderBy(p => p.Name))
+                {
+                    _availableParameters.Add(item);
+                }
+
+                LicorpTrace.Dbg($"FilterAvailableParametersBySheetData: kept {_availableParameters.Count} parameters after filtering by real sheet data.");
+            }
+            catch (Exception ex)
+            {
+                LicorpTrace.Dbg($"ERROR in FilterAvailableParametersBySheetData: {ex.Message}");
+            }
+        }
+
+        private string GetSheetParameterValueForDialog(ViewSheet sheet, string parameterName)
+        {
+            try
+            {
+                if (sheet == null || string.IsNullOrWhiteSpace(parameterName))
+                {
+                    return string.Empty;
+                }
+
+                var param = sheet.LookupParameter(parameterName);
+                var value = GetParameterValueAsString(param);
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    return value;
+                }
+
                 var projectInfo = _document?.ProjectInformation;
                 if (projectInfo != null)
                 {
@@ -749,6 +841,7 @@ namespace LicorpExportPlus.Dialogs
         #endregion
     }
 }
+
 
 
 

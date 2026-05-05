@@ -81,6 +81,8 @@ namespace LicorpExportPlus.Views
 
         // Guard flag to prevent recursive tab validation when SelectedIndex is changed in code.
         private bool _isProgrammaticTabChange = false;
+        private bool _isSelectionWarningVisible = false;
+        private DateTime _lastSelectionWarningAt = DateTime.MinValue;
         
         // ⚡ Lazy loading flags - only load sheets/views when user actually needs them
         private bool _sheetsLoaded = false;
@@ -4846,17 +4848,40 @@ Tiếp tục xuất file?";
             return sheetsSelected || viewsSelected;
         }
 
-        private bool EnsureSelectionBeforeFormatTab()
+        private bool EnsureSelectionBeforeFormatTab(bool showMessage = true)
         {
             if (HasAnySheetOrViewSelected())
                 return true;
 
+            if (showMessage)
+            {
+                ShowSelectionRequiredMessage();
+            }
+
+            return false;
+        }
+
+        private void ShowSelectionRequiredMessage()
+        {
+            if (_isSelectionWarningVisible)
+            {
+                return;
+            }
+
+            // Prevent warning from being reopened immediately by duplicate SelectionChanged notifications.
+            if ((DateTime.Now - _lastSelectionWarningAt).TotalMilliseconds < 400)
+            {
+                return;
+            }
+
+            _isSelectionWarningVisible = true;
             MessageBox.Show(
-                "Vui long tick chon it nhat 1 View hoac Sheet truoc khi chuyen sang tab Format.",
-                "Thong bao",
+                "Please select at least one View or Sheet before switching to the Format tab.",
+                "Notice",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
-            return false;
+            _lastSelectionWarningAt = DateTime.Now;
+            _isSelectionWarningVisible = false;
         }
 
         private void ReturnToSelectionTabSafe()
@@ -4881,6 +4906,11 @@ Tiếp tục xuất file?";
         {
             try
             {
+                if (!ReferenceEquals(sender, MainTabControl))
+                {
+                    return;
+                }
+
                 if (_isProgrammaticTabChange)
                     return;
 
@@ -4895,9 +4925,16 @@ Tiếp tục xuất file?";
                 int selectedIndex = MainTabControl.SelectedIndex;
                 // Debug logging removed
 
-                if (selectedIndex == 1 && !EnsureSelectionBeforeFormatTab())
+                if (selectedIndex == 1 && !EnsureSelectionBeforeFormatTab(showMessage: false))
                 {
                     ReturnToSelectionTabSafe();
+
+                    // Show warning only after UI returns to Selection tab to avoid modal/re-entrant glitches.
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        ShowSelectionRequiredMessage();
+                    }), DispatcherPriority.Background);
+
                     return;
                 }
                 
@@ -7083,12 +7120,10 @@ Tiếp tục xuất file?";
                     List<Models.SelectedParameterInfo> existingConfig = null;
                     if (_profileManager?.CurrentProfile?.Settings != null)
                     {
-                        // Try to load View-specific config first, fallback to old config for backward compatibility
+                        // IMPORTANT: View custom naming must only load view-specific config.
+                        // Do not fallback to legacy shared config because it may contain
+                        // sheet-only parameters (Approved By, Revision...), causing "No updates" in view mode.
                         var configJson = _profileManager.CurrentProfile.Settings.CustomFileNameConfigJson_Views;
-                        if (string.IsNullOrEmpty(configJson))
-                        {
-                            configJson = _profileManager.CurrentProfile.Settings.CustomFileNameConfigJson;
-                        }
                         
                         if (!string.IsNullOrEmpty(configJson))
                         {
@@ -8956,6 +8991,10 @@ Tiếp tục xuất file?";
         */
     }
 }
+
+
+
+
 
 
 
