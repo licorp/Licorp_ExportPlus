@@ -190,8 +190,9 @@ namespace LicorpExportPlus.Services
                     if (convertElementIdsProperty != null && convertElementIdsProperty.CanWrite)
                         convertElementIdsProperty.SetValue(options, settings.ConvertElementIds);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    LicorpTrace.Warn($"[NWCExport] Optional property not set: {ex.Message}");
                 }
             }
             catch (Exception ex)
@@ -266,13 +267,15 @@ namespace LicorpExportPlus.Services
                     _document.Export(outputFolder, fileName, exportOptions);
                     return true;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    LicorpTrace.Error($"[NWCExport] Failed to export sheets reference: {ex.Message}", ex);
                     return false;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                LicorpTrace.Error($"[NWCExport] ExportSheetsReference failed: {ex.Message}", ex);
                 return false;
             }
         }

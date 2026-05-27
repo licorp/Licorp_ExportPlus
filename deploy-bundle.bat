@@ -1,170 +1,205 @@
 @echo off
-setlocal EnableExtensions
+setlocal EnableExtensions EnableDelayedExpansion
 
-set "SCRIPT_DIR=%~dp0"
-set "CONFIGURATION=%~1"
-set "OPTION_1=%~2"
-set "OPTION_2=%~3"
-set "OPTION_3=%~4"
-
-if "%CONFIGURATION%"=="" set "CONFIGURATION=Release"
+title Licorp Export+ - Build + Deploy
+cd /d "%~dp0"
+set "ROOT=%~dp0"
+set "CONFIG=Release"
+set "BUNDLE=C:\ProgramData\Autodesk\ApplicationPlugins\LicorpExportPlus"
 
 echo.
-echo ============================================================
-echo  Licorp Export+ build, package, and deploy
-echo ============================================================
-echo  Project      : %SCRIPT_DIR%
-echo  Configuration: %CONFIGURATION%
-echo  Artifact     : %SCRIPT_DIR%artifacts\release\LicorpExportPlus.bundle
-echo  Bundle dirs  : Contents\R2020 ... Contents\R2027
-echo  Revit deploy : C:\ProgramData\Autodesk\ApplicationPlugins\LicorpExportPlus.bundle
-echo  Addin 2020-26: C:\ProgramData\Autodesk\Revit\Addins\{year}\LicorpExportPlus.addin
-echo  Addin 2027   : C:\Program Files\Autodesk\Revit 2027\AddIns\LicorpExportPlus\LicorpExportPlus.addin
+echo  ========================================
+echo   LICORP EXPORT+ - BUILD + DEPLOY
+echo  ========================================
 echo.
 
-pushd "%SCRIPT_DIR%" || (
-    echo ERROR: Cannot open project folder.
-    exit /b 1
+REM ========================================
+REM  STEP 1: BUILD
+REM ========================================
+if /I "%~1"=="SkipBuild" (
+    echo  [1] Build SKIPPED
+    goto :deploy
 )
 
-where dotnet >nul 2>nul
-if errorlevel 1 (
-    echo ERROR: dotnet was not found in PATH.
-    popd
-    exit /b 1
-)
-
-where powershell >nul 2>nul
-if errorlevel 1 (
-    echo ERROR: powershell was not found in PATH.
-    popd
-    exit /b 1
-)
-
-if /I "%OPTION_1%"=="SkipDeploy" goto RUN_SCRIPT
-if /I "%OPTION_2%"=="SkipDeploy" goto RUN_SCRIPT
-if /I "%OPTION_3%"=="SkipDeploy" goto RUN_SCRIPT
-
-net session >nul 2>nul
-if errorlevel 1 (
-    if /I "%OPTION_3%"=="__ELEVATED" (
-        echo.
-        echo ERROR: Administrator permission was still not granted.
-        echo Right-click deploy-bundle.bat and choose "Run as administrator".
-        echo.
-        pause
-        popd
-        exit /b 1
-    )
-    echo.
-    echo Administrator permission is required for Revit 2027 deployment.
-    echo The Revit 2027 manifest must be written to:
-    echo   C:\Program Files\Autodesk\Revit 2027\AddIns\LicorpExportPlus\
-    echo.
-    echo Requesting Administrator permission...
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath 'cmd.exe' -ArgumentList '/k ""%~f0"" ""%CONFIGURATION%"" ""%OPTION_1%"" ""%OPTION_2%"" ""__ELEVATED""' -WorkingDirectory '%SCRIPT_DIR%' -Verb RunAs"
+echo  [1] Building R2020, R2025, R2027...
+for %%v in (R2020 R2025 R2027) do (
+    echo      Building %%v...
+    dotnet build Source\LicorpExportPlus.%%v\LicorpExportPlus.%%v.csproj -c %CONFIG% --nologo -v q
     if errorlevel 1 (
-        echo.
-        echo ERROR: Elevation request was cancelled or failed.
-        echo No deploy was performed.
-        echo.
-        popd
+        echo      [ERROR] %%v FAILED!
         exit /b 1
     )
-    popd
-    exit /b 0
+)
+echo      All builds OK!
+echo.
+
+REM ========================================
+REM  STEP 2: DEPLOY
+REM ========================================
+:deploy
+if /I "%~1"=="SkipDeploy" (
+    echo  [2] Deploy SKIPPED
+    goto :done
+)
+if /I "%~2"=="SkipDeploy" (
+    echo  [2] Deploy SKIPPED
+    goto :done
 )
 
-:CHECK_REVIT
-tasklist /FI "IMAGENAME eq Revit.exe" 2>nul | find /I "Revit.exe" >nul
-if not errorlevel 1 (
-    echo.
-    echo Revit is currently running. Close Revit before deploy so the add-in DLL is not locked.
-    echo.
-    tasklist /FI "IMAGENAME eq Revit.exe"
-    echo.
-    choice /C RKC /N /M "Press R to recheck, K to close Revit, or C to cancel: "
-    if errorlevel 3 (
-        echo Cancelled. No deploy was performed.
-        popd
-        exit /b 2
+echo  [2] Deploying to %BUNDLE%...
+
+REM Clean old bundle and addins
+if exist "%BUNDLE%" rd /s /q "%BUNDLE%" 2>nul
+for %%y in (2020 2021 2022 2023 2024 2025 2026 2027) do (
+    if exist "%ProgramData%\Autodesk\Revit\Addins\%%y\LicorpExportPlus.addin" (
+        del /f /q "%ProgramData%\Autodesk\Revit\Addins\%%y\LicorpExportPlus.addin" 2>nul
     )
-    if errorlevel 2 (
-        echo Closing Revit...
-        taskkill /IM Revit.exe /T /F
-        timeout /T 3 /NOBREAK >nul
+)
+
+REM Create bundle root
+mkdir "%BUNDLE%" 2>nul
+
+REM Deploy R2020-R2024 (shared .NET Framework 4.8)
+set "SRC20=%ROOT%bin\R2020\%CONFIG%\publish\Revit 2020 Release addin\LicorpExportPlus"
+for %%v in (R2020 R2021 R2022 R2023 R2024) do (
+    set "RV_NUM=%%v"
+    set "RV_NUM=!RV_NUM:R=!"
+    set "DST=%BUNDLE%\%%v"
+    set "ADDIN=%ProgramData%\Autodesk\Revit\Addins\!RV_NUM!"
+    
+    mkdir "!DST!" 2>nul
+    mkdir "!ADDIN!" 2>nul
+    
+    if exist "%SRC20%\LicorpExportPlus.dll" (
+        xcopy "%SRC20%\*" "!DST!\" /E /Y /Q /I >nul 2>&1
+        (
+        echo ^<?xml version="1.0" encoding="utf-8" standalone="no"?^>
+        echo ^<RevitAddIns^>
+        echo ^<AddIn Type="Application"^>
+        echo ^<Name^>LicorpExportPlus^</Name^>
+        echo ^<Assembly^>!DST!\LicorpExportPlus.dll^</Assembly^>
+        echo ^<AddInId^>A7E4B1C3-8D2F-4A5E-9F6B-3C1D7E8A2B5F^</AddInId^>
+        echo ^<FullClassName^>LicorpExportPlus.ExportPlusApplication^</FullClassName^>
+        echo ^<VendorId^>LICORP^</VendorId^>
+        echo ^<VendorDescription^>Licorp, licorp.vn^</VendorDescription^>
+        echo ^</AddIn^>
+        echo ^</RevitAddIns^>
+        ) > "!ADDIN!\LicorpExportPlus.addin"
+        echo      Revit !RV_NUM! - OK
+    ) else (
+        echo      Revit !RV_NUM! - [SKIP] Build not found
     )
-    goto CHECK_REVIT
 )
 
-:RUN_SCRIPT
-set "PS_ARGS=-ExecutionPolicy Bypass -NoProfile -File "%SCRIPT_DIR%deploy-bundle.ps1" -Configuration "%CONFIGURATION%""
+REM Deploy R2025-R2026 (shared .NET 8.0)
+set "SRC25=%ROOT%bin\R2025\%CONFIG%\publish\Revit 2025 Release addin\LicorpExportPlus"
+for %%v in (R2025 R2026) do (
+    set "RV_NUM=%%v"
+    set "RV_NUM=!RV_NUM:R=!"
+    set "DST=%BUNDLE%\%%v"
+    set "ADDIN=%ProgramData%\Autodesk\Revit\Addins\!RV_NUM!"
+    
+    mkdir "!DST!" 2>nul
+    mkdir "!ADDIN!" 2>nul
+    
+    if exist "%SRC25%\LicorpExportPlus.dll" (
+        xcopy "%SRC25%\*" "!DST!\" /E /Y /Q /I >nul 2>&1
+        (
+        echo ^<?xml version="1.0" encoding="utf-8" standalone="no"?^>
+        echo ^<RevitAddIns^>
+        echo ^<AddIn Type="Application"^>
+        echo ^<Name^>LicorpExportPlus^</Name^>
+        echo ^<Assembly^>!DST!\LicorpExportPlus.dll^</Assembly^>
+        echo ^<AddInId^>A7E4B1C3-8D2F-4A5E-9F6B-3C1D7E8A2B5F^</AddInId^>
+        echo ^<FullClassName^>LicorpExportPlus.ExportPlusApplication^</FullClassName^>
+        echo ^<VendorId^>LICORP^</VendorId^>
+        echo ^<VendorDescription^>Licorp, licorp.vn^</VendorDescription^>
+        echo ^</AddIn^>
+        echo ^</RevitAddIns^>
+        ) > "!ADDIN!\LicorpExportPlus.addin"
+        echo      Revit !RV_NUM! - OK
+    ) else (
+        echo      Revit !RV_NUM! - [SKIP] Build not found
+    )
+)
 
-if /I "%OPTION_1%"=="SkipBuild" (
-    set "PS_ARGS=%PS_ARGS% -SkipBuild"
-)
-if /I "%OPTION_2%"=="SkipBuild" (
-    set "PS_ARGS=%PS_ARGS% -SkipBuild"
-)
-if /I "%OPTION_3%"=="SkipBuild" (
-    set "PS_ARGS=%PS_ARGS% -SkipBuild"
-)
-if /I "%OPTION_1%"=="SkipDeploy" (
-    set "PS_ARGS=%PS_ARGS% -SkipDeploy"
-)
-if /I "%OPTION_2%"=="SkipDeploy" (
-    set "PS_ARGS=%PS_ARGS% -SkipDeploy"
-)
-if /I "%OPTION_3%"=="SkipDeploy" (
-    set "PS_ARGS=%PS_ARGS% -SkipDeploy"
-)
+REM Deploy R2027 (.NET 8.0, separate)
+set "SRC27=%ROOT%bin\R2027\%CONFIG%\publish\Revit 2027 Release addin\LicorpExportPlus"
+set "DST=%BUNDLE%\R2027"
+set "ADDIN=%ProgramData%\Autodesk\Revit\Addins\2027"
 
-powershell %PS_ARGS%
-set "EXIT_CODE=%ERRORLEVEL%"
+mkdir "%DST%" 2>nul
+mkdir "%ADDIN%" 2>nul
 
-echo.
-if not "%EXIT_CODE%"=="0" (
-    echo FAILED: build/package/deploy did not complete.
-    echo Try running this Command Prompt as Administrator if ProgramData deploy is blocked.
-    popd
-    exit /b %EXIT_CODE%
-)
-
-if /I "%OPTION_1%"=="SkipDeploy" goto PACKAGE_ONLY_DONE
-if /I "%OPTION_2%"=="SkipDeploy" goto PACKAGE_ONLY_DONE
-if /I "%OPTION_3%"=="SkipDeploy" goto PACKAGE_ONLY_DONE
-
-echo DONE: bundle was built, packaged, and deployed.
-echo.
-echo Package artifact:
-echo   %SCRIPT_DIR%artifacts\release\LicorpExportPlus.bundle
-echo   Contents\R2020 ... Contents\R2027
-echo.
-echo Installed bundle:
-echo   C:\ProgramData\Autodesk\ApplicationPlugins\LicorpExportPlus.bundle
-echo.
-echo Revit manifests:
-echo   2020-2026: C:\ProgramData\Autodesk\Revit\Addins\{year}\LicorpExportPlus.addin
-echo   2027     : C:\Program Files\Autodesk\Revit 2027\AddIns\LicorpExportPlus\LicorpExportPlus.addin
-echo.
-if exist "C:\Program Files\Autodesk\Revit 2027\AddIns\LicorpExportPlus\LicorpExportPlus.addin" (
-    echo Revit 2027 manifest:
-    echo   C:\Program Files\Autodesk\Revit 2027\AddIns\LicorpExportPlus\LicorpExportPlus.addin
+if exist "%SRC27%\LicorpExportPlus.dll" (
+    xcopy "%SRC27%\*" "%DST%\" /E /Y /Q /I >nul 2>&1
+    (
+    echo ^<?xml version="1.0" encoding="utf-8" standalone="no"?^>
+    echo ^<RevitAddIns^>
+    echo ^<AddIn Type="Application"^>
+    echo ^<Name^>LicorpExportPlus^</Name^>
+    echo ^<Assembly^>%DST%\LicorpExportPlus.dll^</Assembly^>
+    echo ^<AddInId^>A7E4B1C3-8D2F-4A5E-9F6B-3C1D7E8A2B5F^</AddInId^>
+    echo ^<FullClassName^>LicorpExportPlus.ExportPlusApplication^</FullClassName^>
+    echo ^<VendorId^>LICORP^</VendorId^>
+    echo ^<VendorDescription^>Licorp, licorp.vn^</VendorDescription^>
+    echo ^</AddIn^>
+    echo ^</RevitAddIns^>
+    ) > "%ADDIN%\LicorpExportPlus.addin"
+    echo      Revit 2027 - OK
 ) else (
-    echo WARNING: Revit 2027 manifest was not found in Program Files AddIns folder.
+    echo      Revit 2027 - [SKIP] Build not found
 )
+
+REM Create PackageContents.xml
+(
+echo ^<?xml version="1.0" encoding="utf-8"?^>
+echo ^<ApplicationPackage SchemaVersion="1.0"
+echo   Name="Licorp Export+"
+echo   Description="Professional Batch Export for Revit"
+echo   Author="Licorp"
+echo   AppVersion="1.0.0"
+echo   ProductCode="{A7E4B1C3-8D2F-4A5E-9F6B-3C1D7E8A2B5F}"
+echo   ProductType="Application"^>
+echo   ^<Company Name="Licorp" /^>
+echo   ^<Components^>
+echo     ^<ComponentEntry AppName="Licorp Export+" Version="1.0.0"
+echo       ModuleName="./R2020/LicorpExportPlus.addin"
+echo       AppDescription="Professional Batch Export for Revit"
+echo       LoadOnRevitStartup="True"^>
+echo       ^<RuntimeRequirements OS="Win64" Platform="Revit" SeriesMin="R2020" SeriesMax="R2024" /^>
+echo     ^</ComponentEntry^>
+echo     ^<ComponentEntry AppName="Licorp Export+" Version="1.0.0"
+echo       ModuleName="./R2025/LicorpExportPlus.addin"
+echo       AppDescription="Professional Batch Export for Revit"
+echo       LoadOnRevitStartup="True"^>
+echo       ^<RuntimeRequirements OS="Win64" Platform="Revit" SeriesMin="R2025" SeriesMax="R2026" /^>
+echo     ^</ComponentEntry^>
+echo     ^<ComponentEntry AppName="Licorp Export+" Version="1.0.0"
+echo       ModuleName="./R2027/LicorpExportPlus.addin"
+echo       AppDescription="Professional Batch Export for Revit"
+echo       LoadOnRevitStartup="True"^>
+echo       ^<RuntimeRequirements OS="Win64" Platform="Revit" SeriesMin="R2027" SeriesMax="R2027" /^>
+echo     ^</ComponentEntry^>
+echo   ^</Components^>
+echo ^</ApplicationPackage^>
+) > "%BUNDLE%\PackageContents.xml"
+
+echo.
+echo      Bundle: %BUNDLE%
 echo.
 
-popd
-exit /b 0
-
-:PACKAGE_ONLY_DONE
-echo DONE: bundle was built, packaged, and verified. Deploy was skipped.
+REM ========================================
+REM  DONE
+REM ========================================
+:done
+echo  ========================================
+echo   DONE!
+echo  ========================================
 echo.
-echo Package artifact:
-echo   %SCRIPT_DIR%artifacts\release\LicorpExportPlus.bundle
-echo   Contents\R2020 ... Contents\R2027
+echo  Bundle: %BUNDLE%
+echo  Manifests: %ProgramData%\Autodesk\Revit\Addins\{year}\LicorpExportPlus.addin
 echo.
-
-popd
-exit /b 0
+echo  Restart Revit - Tab "Licorp" - "Export+"
+echo.
+pause

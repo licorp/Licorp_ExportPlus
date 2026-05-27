@@ -288,14 +288,11 @@ namespace LicorpExportPlus.Models
 
             try
             {
-                // Currently sheets load all basic info at startup
-                // This method is here for future expansion if needed
-                // For now, just mark as fully loaded
                 IsFullyLoaded = true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // If loading fails, ignore
+                System.Diagnostics.Debug.WriteLine($"[SheetItem] Failed to load full details for {SheetNumber}: {ex.Message}");
             }
         }
     }

@@ -372,6 +372,30 @@ namespace LicorpExportPlus.Views
         {
         }
 
+        public ExportPlusMainWindow(ViewModels.MainViewModel viewModel)
+        {
+            _totalLoadTimer = System.Diagnostics.Stopwatch.StartNew();
+            
+            DataContext = viewModel;
+            
+            InitializeComponent();
+            
+            Loaded += async (s, e) =>
+            {
+                try
+                {
+                    await viewModel.LoadDataCommand.ExecuteAsync(null);
+                }
+                catch (Exception ex)
+                {
+                    LicorpTrace.Error($"[MainWindow] Failed to load data: {ex.Message}", ex);
+                }
+            };
+            
+            _totalLoadTimer.Stop();
+            LicorpTrace.Info($"[MainWindow] ViewModel constructor completed in {_totalLoadTimer.ElapsedMilliseconds}ms");
+        }
+
         public ExportPlusMainWindow(Document document, UIApplication uiApp)
         {
             // ⏱️ START TOTAL LOAD TIMER
@@ -3311,6 +3335,12 @@ namespace LicorpExportPlus.Views
 
         private void UpdateExportSummary()
         {
+            // ⚡ PERFORMANCE FIX: Skip summary update during bulk checkbox updates
+            if (_isBulkUpdatingCheckboxes)
+            {
+                return;
+            }
+
             try
             {
                 var selectedCount = SelectedSheetsCount;
@@ -3343,6 +3373,12 @@ namespace LicorpExportPlus.Views
         private void UpdateExportQueue()
         {
             if (_isUpdatingExportQueue)
+            {
+                return;
+            }
+
+            // ⚡ PERFORMANCE FIX: Skip queue rebuild during bulk checkbox updates
+            if (_isBulkUpdatingCheckboxes)
             {
                 return;
             }
@@ -4024,19 +4060,39 @@ Tiếp tục xuất file?";
 
         private void SheetsDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Debug logging removed
-            
             // ✓ SMART RESET: Phát hiện user đã thay đổi selection sau export
-            // → Tự động reset và rebuild queue với selection MỚI
             if (_exportJustCompleted)
             {
-                // Debug logging removed
-                // Debug logging removed
                 ResetAddinAfterExport();
                 _exportJustCompleted = false;
             }
 
-            // Debounce heavy UI/queue refresh while user is selecting ranges (Shift/Ctrl)
+            // ⚡ PERFORMANCE FIX: Skip refresh during bulk selection (Shift/Ctrl click)
+            if (_isBulkUpdatingCheckboxes)
+            {
+                return;
+            }
+
+            // ⚡ PERFORMANCE FIX: When selecting many items, increase debounce delay
+            var selectedCount = SheetsDataGrid?.SelectedItems?.Count ?? 0;
+            if (selectedCount > 10)
+            {
+                // Longer debounce for large selections
+                _summaryUpdateTimer?.Stop();
+                _isSelectionRefreshScheduled = true;
+                if (_summaryUpdateTimer != null)
+                {
+                    _summaryUpdateTimer.Interval = TimeSpan.FromMilliseconds(500);
+                    _summaryUpdateTimer.Start();
+                }
+                return;
+            }
+
+            // Normal debounce for small selections
+            if (_summaryUpdateTimer != null)
+            {
+                _summaryUpdateTimer.Interval = TimeSpan.FromMilliseconds(100);
+            }
             ScheduleSelectionRefresh();
         }
 
@@ -4115,19 +4171,39 @@ Tiếp tục xuất file?";
 
         private void ViewsDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Debug logging removed
-            
             // ✓ SMART RESET: Phát hiện user đã thay đổi selection sau export
-            // → Tự động reset và rebuild queue với selection MỚI
             if (_exportJustCompleted)
             {
-                // Debug logging removed
-                // Debug logging removed
                 ResetAddinAfterExport();
                 _exportJustCompleted = false;
             }
 
-            // Debounce heavy UI/queue refresh while user is selecting ranges (Shift/Ctrl)
+            // ⚡ PERFORMANCE FIX: Skip refresh during bulk selection (Shift/Ctrl click)
+            if (_isBulkUpdatingCheckboxes)
+            {
+                return;
+            }
+
+            // ⚡ PERFORMANCE FIX: When selecting many items, increase debounce delay
+            var selectedCount = ViewsDataGrid?.SelectedItems?.Count ?? 0;
+            if (selectedCount > 10)
+            {
+                // Longer debounce for large selections
+                _summaryUpdateTimer?.Stop();
+                _isSelectionRefreshScheduled = true;
+                if (_summaryUpdateTimer != null)
+                {
+                    _summaryUpdateTimer.Interval = TimeSpan.FromMilliseconds(500);
+                    _summaryUpdateTimer.Start();
+                }
+                return;
+            }
+
+            // Normal debounce for small selections
+            if (_summaryUpdateTimer != null)
+            {
+                _summaryUpdateTimer.Interval = TimeSpan.FromMilliseconds(100);
+            }
             ScheduleSelectionRefresh();
         }
 

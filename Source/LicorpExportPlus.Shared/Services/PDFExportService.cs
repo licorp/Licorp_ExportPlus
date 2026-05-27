@@ -118,9 +118,8 @@ namespace LicorpExportPlus.Services
 
                         _document.Export(outputFolder, new List<ElementId> { sheet.Id }, pdfOptions);
 
-                        System.Threading.Thread.Sleep(500);
-
-                        var filesAfter = Directory.GetFiles(outputFolder, "*.pdf");
+                        // Wait for file to be written with timeout
+                        var filesAfter = WaitForExportedFile(outputFolder, filesBeforeInfo, exportStartTime, TimeSpan.FromSeconds(5));
                         string exportedFile = filesAfter.FirstOrDefault(file =>
                         {
                             var fileInfo = new FileInfo(file);
@@ -643,6 +642,33 @@ namespace LicorpExportPlus.Services
             }
 
             return false;
+        }
+
+        private static string[] WaitForExportedFile(string outputFolder, 
+            Dictionary<string, DateTime> filesBeforeInfo, DateTime exportStartTime, TimeSpan timeout)
+        {
+            var deadline = DateTime.Now + timeout;
+            var pollInterval = TimeSpan.FromMilliseconds(100);
+
+            while (DateTime.Now < deadline)
+            {
+                var filesAfter = Directory.GetFiles(outputFolder, "*.pdf");
+                var newFile = filesAfter.FirstOrDefault(file =>
+                {
+                    var fileInfo = new FileInfo(file);
+                    return !filesBeforeInfo.ContainsKey(fileInfo.FullName) || 
+                           fileInfo.LastWriteTime > exportStartTime;
+                });
+
+                if (newFile != null)
+                {
+                    return filesAfter;
+                }
+
+                System.Threading.Thread.Sleep(pollInterval);
+            }
+
+            return Directory.GetFiles(outputFolder, "*.pdf");
         }
     }
 }

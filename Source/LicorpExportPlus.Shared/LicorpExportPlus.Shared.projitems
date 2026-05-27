@@ -12,6 +12,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)*.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\*.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\*.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Services\Interfaces\*.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Services\Infrastructure\*.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Events\*.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ViewModels\*.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\*.cs" />

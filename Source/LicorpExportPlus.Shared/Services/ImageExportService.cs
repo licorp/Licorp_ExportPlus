@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
+using Licorp.Diagnostics;
 
 namespace LicorpExportPlus.Services
 {
@@ -26,9 +27,11 @@ namespace LicorpExportPlus.Services
                 try
                 {
                     sheet.Document.ExportImage(imageOptions);
+                    LicorpTrace.Info($"[ImageExport] Exported: {sheet.SheetNumber}");
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    LicorpTrace.Error($"[ImageExport] Failed to export {sheet.SheetNumber}: {ex.Message}", ex);
                 }
             }
         }

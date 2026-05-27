@@ -22,8 +22,8 @@ namespace LicorpExportPlus
         private static readonly string PanelName = "Export";
         private const string ButtonName = "ExportPlus";
 
-        private static RevitTaskService _revitTaskService;
-        public static IRevitTask RevitTask => _revitTaskService;
+        private static ricaun.Revit.UI.Tasks.RevitTaskService _revitTaskService;
+        public static ricaun.Revit.UI.Tasks.IRevitTask RevitTask => _revitTaskService;
         public static Container Container { get; private set; }
 
         static ExportPlusApplication()
@@ -47,6 +47,9 @@ namespace LicorpExportPlus
                 _revitTaskService = InitializeRevitTaskService(application, Container);
                 LicorpTrace.Info("RevitTaskService initialized.");
 
+                Host.StartAsync().GetAwaiter().GetResult();
+                LicorpTrace.Info("Host (Microsoft DI) initialized.");
+
                 CreateRibbonTab(application);
                 LicorpTrace.Add("Ribbon Tab created.");
 
@@ -65,6 +68,7 @@ namespace LicorpExportPlus
             LicorpTrace.Info("ExportPlusApplication shutting down...");
             _revitTaskService?.Dispose();
             _revitTaskService = null;
+            Host.StopAsync().GetAwaiter().GetResult();
             LicorpTrace.Info("OnShutdown completed.");
             return Result.Succeeded;
         }
@@ -77,11 +81,11 @@ namespace LicorpExportPlus
             return container;
         }
 
-        private static RevitTaskService InitializeRevitTaskService(UIControlledApplication application, Container container)
+        private static ricaun.Revit.UI.Tasks.RevitTaskService InitializeRevitTaskService(UIControlledApplication application, Container container)
         {
-            var revitTaskService = new RevitTaskService(application);
+            var revitTaskService = new ricaun.Revit.UI.Tasks.RevitTaskService(application);
             revitTaskService.Initialize();
-            container.AddSingleton<IRevitTask>(revitTaskService);
+            container.AddSingleton<ricaun.Revit.UI.Tasks.IRevitTask>(revitTaskService);
             return revitTaskService;
         }
 
